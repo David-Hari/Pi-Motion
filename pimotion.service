@@ -1,0 +1,11 @@
+[Unit]
+Description=Motion Detection for Raspberry Pi
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/pimotion
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
