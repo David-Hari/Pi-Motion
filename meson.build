@@ -1,9 +1,22 @@
-project('pimotion', 'cpp', default_options : ['cpp_std=c++17'])
+project('pimotion', 'cpp', 
+	default_options : [
+		'werror=true',
+		'warning_level=2',
+		'cpp_std=c++17',
+	])
 
-libcamera_dep = dependency('libcamera', required : true)
-opencv_dep = dependency('opencv4', required : true)
+src_files = files([
+	'main.cpp',
+	'event_loop.cpp',
+])
 
-executable('pimotion',
-	['main.cpp'],
-	dependencies : [libcamera_dep, opencv_dep]
-)
+deps = [
+	dependency('libcamera', required : true),
+	dependency('opencv4', required : true),
+	dependency('libevent_pthreads'),
+]
+
+cpp_arguments = [ '-Wno-unused-parameter', ]
+add_project_arguments(cpp_arguments, language : 'cpp')
+
+executable('pimotion', src_files, dependencies : deps)

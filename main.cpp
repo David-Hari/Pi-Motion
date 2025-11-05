@@ -7,6 +7,9 @@
 #include <libcamera/base/shared_fd.h>
 #include <opencv2/opencv.hpp>
 
+#include "event_loop.h"
+
+
 using namespace libcamera;
 using namespace std::chrono_literals;
 
@@ -15,7 +18,8 @@ static const double MOTION_THRESHOLD = 25.0;	// motion sensitivity
 static const int POST_MOTION_FRAMES = 150;	// record 10s after motion stops
 static const int FRAME_WIDTH = 1920, FRAME_HEIGHT = 1080, FPS = 15;
 
-static std::shared_ptr<libcamera::Camera> camera;
+static std::shared_ptr<Camera> camera;
+static EventLoop loop;
 static Stream *stream = nullptr;
 static unsigned int stride;
 static std::map<int, std::pair<void *, unsigned int>> mappedBuffers;
@@ -46,11 +50,7 @@ cv::Mat bufferToMat(const FrameBuffer *buffer, int width, int height) {
 }
 
 
-static void requestComplete(Request *request) {
-	if (request->status() == Request::RequestCancelled) {
-		return;
-	}
-	
+static void processRequest(Request *request) {
 	if (!writer.isOpened()) {
 		std::string filename = "/mnt/video/" + std::to_string(std::time(nullptr)) + ".avi";
 		writer.open(filename, cv::VideoWriter::fourcc('Y','8','0','0'), FPS, {FRAME_WIDTH, FRAME_HEIGHT}, false);
@@ -103,6 +103,19 @@ static void requestComplete(Request *request) {
 }
 
 
+/*
+ * This function is invoked in the CameraManager's thread, so avoid any heavy processing here.
+ * Re-direct processing to the application's thread instead, so as not to block the CameraManager's
+ * thread for large amount of time.
+ */
+static void requestComplete(Request *request) {
+	if (request->status() == Request::RequestCancelled) {
+		return;
+	}
+	loop.callLater(std::bind(&processRequest, request));
+}
+
+
 void printConfig(const StreamConfiguration &config) {
 	std::cout << "  size = " << config.size.toString() << std::endl;
 	std::cout << "  stride = " << config.stride << std::endl;
@@ -131,7 +144,7 @@ int main() {
 	std::unique_ptr<CameraConfiguration> config = camera->generateConfiguration({ StreamRole::VideoRecording });
 	StreamConfiguration &streamConfig = config->at(0);
 	streamConfig.size = { FRAME_WIDTH, FRAME_HEIGHT };
-	streamConfig.pixelFormat = formats::YUV420;  // fourcc('Y','U','1','2')
+	streamConfig.pixelFormat = formats::NV12;  // YUV 4:2:0 image with a plane of 8 bit Y samples followed by an interleaved U/V plane.
 	config->validate();
 	std::cout << "Validated camera configuration:" << std::endl;
 	printConfig(streamConfig);
@@ -140,8 +153,7 @@ int main() {
 	stride = streamConfig.stride;
 
 	FrameBufferAllocator *allocator = new FrameBufferAllocator(camera);
-	int ret = allocator->allocate(stream);
-	if (ret < 0) {
+	if (allocator->allocate(stream) < 0) {
 		std::cerr << "Can't allocate buffers" << std::endl;
 		return -ENOMEM;
 	}
@@ -173,10 +185,17 @@ int main() {
 		camera->queueRequest(request.get());
 	}
 
+	/*
+	 * Run the EventLoop
+	 *
+	 * In order to dispatch events received from the video devices, such
+	 * as buffer completions, an event loop has to be run.
+	 */
 	std::cout << "Running." << std::endl;
-	std::this_thread::sleep_for(std::chrono::seconds(10));
-
-	std::cout << "Stopping." << std::endl;
+	loop.timeout(10);
+	int ret = loop.exec();
+	std::cout << "Exited event loop with status: " << ret << std::endl;
+	std::cout << "Stopping camera." << std::endl;
 	camera->requestCompleted.disconnect(requestComplete);
 	camera->stop();
 	writer.release();
