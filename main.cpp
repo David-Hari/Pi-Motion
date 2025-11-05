@@ -22,7 +22,7 @@ static std::shared_ptr<Camera> camera;
 static EventLoop loop;
 static Stream *stream = nullptr;
 static unsigned int stride;
-static std::map<int, std::pair<void *, unsigned int>> mappedBuffers;
+static std::map<int, std::pair<uint8_t *, unsigned int>> mappedBuffers;
 static cv::VideoWriter writer;
 //static int postCount = 0;
 //static cv::Mat lastGray;
@@ -44,7 +44,7 @@ cv::Mat bufferToMat(const FrameBuffer *buffer, int width, int height) {
 	// Y plane (index 0) is all we care about, it contains the greyscale information
 	const FrameBuffer::Plane &plane = buffer->planes()[0];
 	
-	void *data = mappedBuffers[plane.fd.get()].first;
+	uint8_t *data = mappedBuffers[plane.fd.get()].first + plane.offset;
 	cv::Mat image(height, width, CV_8UC1, data, stride);
 	return image;
 }
@@ -172,10 +172,11 @@ int main() {
 			std::cerr << "Can't set buffer for request" << std::endl;
 			return ret;
 		}
-		for (const FrameBuffer::Plane &plane : buffer->planes()) {
-			void *memory = mmap(nullptr, plane.length, PROT_READ, MAP_SHARED, plane.fd.get(), 0);
-			mappedBuffers[plane.fd.get()] = std::make_pair(memory, plane.length);
-		}
+		// Y plane (index 0) is all we care about, it contains the greyscale information
+		const FrameBuffer::Plane &plane = buffer->planes()[0];
+		uint8_t *memory = static_cast<uint8_t*>(mmap(nullptr, plane.length, PROT_READ, MAP_SHARED, plane.fd.get(), 0));
+		mappedBuffers[plane.fd.get()] = std::make_pair(memory, plane.length);
+
 		requests.push_back(std::move(request));
 	}
 
