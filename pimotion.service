@@ -5,7 +5,10 @@ After=multi-user.target
 [Service]
 Type=simple
 ExecStart=/home/pi/pimotion
+User=pi
 Restart=on-failure
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
