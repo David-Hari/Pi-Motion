@@ -19,6 +19,7 @@ EventLoop::EventLoop() {
 	evthread_use_pthreads();
 	event = event_base_new();
 	instance = this;
+	maxCalls = 10;
 }
 
 EventLoop::~EventLoop() {
@@ -69,7 +70,9 @@ void EventLoop::timeout(unsigned int sec) {
 void EventLoop::callLater(const std::function<void()> &func) {
 	{
 		std::unique_lock<std::mutex> locker(lock);
-		calls.push_back(func);
+		if (calls.size() < maxCalls) {
+			calls.push_back(func);
+		}
 	}
 	interrupt();
 }

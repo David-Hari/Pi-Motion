@@ -36,6 +36,7 @@ private:
 	int exitCode;
 
 	std::list<std::function<void()>> calls;
+	int maxCalls;
 	std::mutex lock;
 
 	void interrupt();
