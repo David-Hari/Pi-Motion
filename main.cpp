@@ -24,8 +24,7 @@ static Stream *stream = nullptr;
 static unsigned int stride;
 static std::map<int, std::pair<uint8_t *, unsigned int>> mappedBuffers;
 static cv::VideoWriter writer;
-//static int postCount = 0;
-//static cv::Mat lastGray;
+static cv::Mat previousFrame;
 
 /*
 TODO:
@@ -51,52 +50,25 @@ cv::Mat bufferToMat(const FrameBuffer *buffer, int width, int height) {
 
 
 static void processRequest(Request *request) {
-	if (!writer.isOpened()) {
-		std::string filename = "/mnt/video/" + std::to_string(std::time(nullptr)) + ".avi";
-		writer.open(filename, cv::VideoWriter::fourcc('Y','8','0','0'), FPS, {FRAME_WIDTH, FRAME_HEIGHT}, false);
-	}
 	cv::Mat frame = bufferToMat(request->buffers().begin()->second, FRAME_WIDTH, FRAME_HEIGHT);
-	writer.write(frame);
-	/*
-	
-	// motion detection
 	cv::Mat diff;
-	if (!lastGray.empty()) {
-		cv::absdiff(frame, lastGray, diff);
+	if (!previousFrame.empty()) {
+		cv::absdiff(frame, previousFrame, diff);
 		double motion = cv::mean(diff)[0];
-		if (motion > MOTION_THRESHOLD) {
-			if (!recording) {
+		std::cout << motion << std::endl;
+		/*if (motion > MOTION_THRESHOLD) {
+			if (!writer.isOpened()) {
 				std::string filename = "/mnt/video/" + std::to_string(std::time(nullptr)) + ".avi";
-				writer.open(filename, cv::VideoWriter::fourcc('M','J','P','G'), FPS, {FRAME_WIDTH, FRAME_HEIGHT}, true);
-				for (auto &f : prebuffer) {
-					writer.write(f);
-				}
-				prebuffer.clear();
-				recording = true;
-				postCount = POST_MOTION_FRAMES;
-				std::cout << "Motion start: " << filename << "\n";
+				writer.open(filename, cv::VideoWriter::fourcc('Y','8','0','0'), FPS, {FRAME_WIDTH, FRAME_HEIGHT}, false);
+				//for (auto &f : prebuffer) {
+				//	writer.write(f);
+				//}
+				//prebuffer.clear();
+				writer.write(frame);
 			}
-			else {
-				postCount = POST_MOTION_FRAMES;
-			}
-		}
+		}*/
 	}
-	lastGray = frame.clone();
-
-	if (recording) {
-		writer.write(frame);
-		if (--postCount <= 0) {
-			writer.release();
-			recording = false;
-			std::cout << "Motion end\n";
-		}
-	}
-	else {
-		prebuffer.push_back(frame);
-		if (prebuffer.size() > PREBUFFER_FRAMES)
-			prebuffer.pop_front();
-	}
-	*/
+	previousFrame = frame.clone();
 
 	request->reuse(Request::ReuseBuffers);
 	camera->queueRequest(request); // Re-queue for next frame
@@ -186,14 +158,8 @@ int main() {
 		camera->queueRequest(request.get());
 	}
 
-	/*
-	 * Run the EventLoop
-	 *
-	 * In order to dispatch events received from the video devices, such
-	 * as buffer completions, an event loop has to be run.
-	 */
+	loop.setupSignalHandlers();
 	std::cout << "Running." << std::endl;
-	loop.timeout(10);
 	int ret = loop.exec();
 	std::cout << "Exited event loop with status: " << ret << std::endl;
 	std::cout << "Stopping camera." << std::endl;
@@ -210,5 +176,5 @@ int main() {
 	camera.reset();
 	cm.stop();
 
-	return 0;
+	return ret;
 }

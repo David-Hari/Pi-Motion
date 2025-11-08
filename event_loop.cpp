@@ -11,6 +11,7 @@
 #include <event2/event.h>
 #include <event2/thread.h>
 
+
 EventLoop *EventLoop::instance = nullptr;
 
 EventLoop::EventLoop() {
@@ -22,12 +23,14 @@ EventLoop::EventLoop() {
 	maxCalls = 10;
 }
 
+
 EventLoop::~EventLoop() {
 	instance = nullptr;
 
 	event_base_free(event);
 	libevent_global_shutdown();
 }
+
 
 int EventLoop::exec() {
 	exitCode = -1;
@@ -41,14 +44,31 @@ int EventLoop::exec() {
 	return exitCode;
 }
 
+
 void EventLoop::exit(int code) {
 	exitCode = code;
 	shouldExit.store(true, std::memory_order_release);
 	interrupt();
 }
 
+
 void EventLoop::interrupt() {
 	event_base_loopbreak(event);
+}
+
+
+static void handleExitSignal(evutil_socket_t, short, void *arg) {
+	auto *loop = static_cast<EventLoop *>(arg);
+	loop->exit(0);
+}
+
+
+void EventLoop::setupSignalHandlers() {
+	struct event *sigint = evsignal_new(event, SIGINT, handleExitSignal, this);
+	event_add(sigint, nullptr);
+
+	struct event *sigterm = evsignal_new(event, SIGTERM, handleExitSignal, this);
+	event_add(sigterm, nullptr);
 }
 
 
@@ -56,6 +76,7 @@ void EventLoop::timeoutTriggered(int fd, short event, void *arg) {
 	EventLoop *self = static_cast<EventLoop *>(arg);
 	self->exit();
 }
+
 
 void EventLoop::timeout(unsigned int sec) {
 	struct event *ev;
@@ -67,6 +88,7 @@ void EventLoop::timeout(unsigned int sec) {
 	evtimer_add(ev, &tv);
 }
 
+
 void EventLoop::callLater(const std::function<void()> &func) {
 	{
 		std::unique_lock<std::mutex> locker(lock);
@@ -76,6 +98,7 @@ void EventLoop::callLater(const std::function<void()> &func) {
 	}
 	interrupt();
 }
+
 
 void EventLoop::dispatchCalls() {
 	std::unique_lock<std::mutex> locker(lock);
