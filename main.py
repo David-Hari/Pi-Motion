@@ -16,7 +16,7 @@ try:
 			# Wrap h264 in mkv container with appropriate fps
 			#os.system(f'ffmpeg -r {str(self.frame_rate)} -i {path} -vcodec copy {mkvpath} >/dev/null 2>&1')
 			#os.remove(path)  # Delete original .h264 file
-			logging.info('motion capture in "{0}"'.format(recording))
+			logging.info('Motion capture in "{0}"'.format(recording))
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):
 	exit()

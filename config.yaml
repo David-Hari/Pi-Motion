@@ -1,10 +1,11 @@
 
 # Best mode is 4, which gives full field of view at 4:3 aspect ratio
 # and 2x2 binning, resulting in an area of 1296x972
-sensor_mode = 4
-width = 1296 
-height = 972
-frame_rate = 15
-bit_rate = 2000000  # 2Mbps is a high quality stream for 10 fps HD video
-seconds_pre = 10
-seconds_post = 60
+sensor_mode: 4
+width: 1296
+height: 972
+frame_rate: 15
+bit_rate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
+seconds_pre: 10
+seconds_post: 60
+output_dir: "./output"

@@ -1,12 +1,12 @@
 # Taken from https://github.com/osmaa/pinymotion
-import os
 import io
 import time
 import queue
 import threading
 import logging
+from pathlib import Path
 
-import picamera
+import picamerax as picamera
 from omegaconf import OmegaConf
 
 from MotionVectorReader import MotionVectorReader
@@ -36,6 +36,8 @@ class MotionRecorder(threading.Thread):
 		self.seconds_pre = config.seconds_pre   # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post # Number of seconds to record post end of motion
 		self.file_pattern = '%y-%m-%dT%H-%M-%S' # Pattern for time.strfime
+		self.output_dir = Path(config.output_dir)
+		self.captures = queue.Queue()
 
 
 	def __enter__(self):
@@ -75,6 +77,7 @@ class MotionRecorder(threading.Thread):
 		"""Sets up PiCamera to record H.264 High/4.1 profile video with enough
 		intra frames that there is at least one in the in-memory circular buffer when
 		motion is detected."""
+		logging.info("Starting camera")
 		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=self.sensor_mode,
 		                                resolution=(self.width, self.height), framerate=self.frame_rate)
 		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=self.bit_rate)
@@ -82,9 +85,8 @@ class MotionRecorder(threading.Thread):
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=self.bit_rate,
 		                            inline_headers=True, intra_period=self.seconds_pre * self.frame_rate // 2)
+		logging.info("Waiting for camera to warm up...")
 		self.camera.wait_recording(1)  # give camera some time to start up
-
-	captures = queue.Queue()
 
 
 	def run(self):
@@ -96,37 +98,29 @@ class MotionRecorder(threading.Thread):
 		"""
 		self.motion.disabled = False
 		while self.camera.recording:
-			# wait for motion detection
 			if self.motion.wait(self.seconds_pre):
 				if self.motion.has_detected_motion():
 					try:
 						# Start a new video, then append circular buffer to it until motion ends
 						name = time.strftime(self.file_pattern)
-						output = io.open(name + '.h264', 'wb')
-						self.append_buffer(output, header=True)
-						while self.motion.has_detected_motion() and self.camera.recording:
-							self.wait(self.seconds_pre / 2)
-							self.append_buffer(output)
+						with io.open(self.output_dir.joinpath(Path(name + '.h264')), 'wb') as output:
+							self.append_buffer(output, header=True)
+							while self.motion.has_detected_motion() and self.camera.recording:
+								self.wait(self.seconds_pre / 2)
+								self.append_buffer(output)
+							self.captures.put(name)
 					except picamera.PiCameraError as e:
 						logging.error('Could not save recording: ' + e)
 						pass
-					finally:
-						output.close()
-						self._output = None
-						self.captures.put(name)
 					# Wait for the circular buffer to fill up before looping again
 					self.wait(self.seconds_pre / 2)
 
 
 	def append_buffer(self, output, header=False):
 		"""Flush contents of circular framebuffer to current on-disk recording."""
-		if header:
-			header=picamera.PiVideoFrameType.sps_header
-		else:
-			header=None
 		s = self.stream
 		with s.lock:
-			s.copy_to(output, seconds=self.seconds_pre, first_frame=header)
+			s.copy_to(output, seconds=self.seconds_pre, first_frame=picamera.PiVideoFrameType.sps_header if header else None)
 			s.clear()
 		return output
 
@@ -135,6 +129,5 @@ class MotionRecorder(threading.Thread):
 		"""Background thread for annotating date and time to video."""
 		while camera.recording:
 			camera.annotate_text = time.strftime('%y-%m-%d %H:%M')
-			camera.annotate_background = True
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
 
