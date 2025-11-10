@@ -31,7 +31,7 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 
 	def save_motion_vectors(self, file):
-		self.output = open(file, "ab")
+		self.output = open(file, 'ab')
 
 
 	def has_detected_motion(self):
@@ -47,7 +47,7 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 	# from profilehooks import profile
 	# @profile
-	def analyze(self, array):
+	def analyze(self, data):
 		"""Runs once per frame on a 16x16 motion vector block buffer (about 5000 values).
 		Must be faster than frame rate (max 100 ms for 10 fps stream).
 		Sets self.trigger Event to trigger capture.
@@ -61,8 +61,8 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		if self.output:
 			self.output.write(struct.pack('>8sL?8sBBB',
 			                              b'frameno\x00', self.camera.frame.index, self.has_detected_motion(),
-			                              b'mvarray\x00', array.shape[0], array.shape[1], array[0].itemsize))
-			self.output.write(array)
+			                              b'mvarray\x00', data.shape[0], data.shape[1], data[0].itemsize))
+			self.output.write(data)
 
 		# The motion vector array we get from the camera contains three values per
 		# macroblock: the X and Y components of the inter-block motion vector, and
@@ -72,21 +72,30 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		# can use it in a decay function to reduce sensitivity to noise on a per-block
 		# basis
 
-		# accumulate and decay SAD field
+		# Accumulate and decay SAD field
 		noise = self.noise
 		if not noise:
-			noise = np.zeros(array.shape, dtype=np.short)
+			noise = np.zeros(data.shape, dtype=np.short)
 		shift = max(self.window.bit_length() - 2, 0)
 		noise -= (noise >> shift) + 1  # decay old noise
-		noise = np.add(noise, array['sad'] >> shift).clip(0)
+		noise = np.add(noise, data['sad'] >> shift).clip(0)
 
-		# then look for motion vectors exceeding the length of the current mask
-		array = np.sqrt(
-			np.square(array['x'].astype(np.float)) +
-			np.square(array['y'].astype(np.float))
+		# Get direction vector
+		direction = np.sqrt(
+			np.square(data['x'].astype(np.float)) +
+			np.square(data['y'].astype(np.float))
 		).clip(0, 255).astype(np.uint8)
 
-		# then consider motion repetition
+		# Look for the largest continuous area in picture that has motion
+		mask = (direction > (noise >> 4))   # Every motion vector exceeding current noise field
+		#TODO: What does this do?  labels,count = ndimage.label(mask) # label all motion areas
+		#sizes = ndimage.sum(mask, labels, range(count + 1)) # number of MV blocks per area
+		#largest = np.sort(sizes)[-1] # what's the size of the largest area
+
+		# Does that area size exceed the minimum motion threshold?
+		#motion = (largest >= self.area)
+
+		# Then consider motion repetition
 		#self.previous_frames.append(motion)
 
 		def count_longest(a, value):

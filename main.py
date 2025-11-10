@@ -12,10 +12,8 @@ try:
 		recorder.start()
 		while True:
 			recording = recorder.captures.get()
-			# TODO: Put this in script
-			# Wrap h264 in mkv container with appropriate fps
-			#os.system(f'ffmpeg -r {str(self.frame_rate)} -i {path} -vcodec copy {mkvpath} >/dev/null 2>&1')
-			#os.remove(path)  # Delete original .h264 file
+			# TODO: Pass arguments, and don't wait
+			#os.system('./convert.sh')
 			logging.info('Motion capture in "{0}"'.format(recording))
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):

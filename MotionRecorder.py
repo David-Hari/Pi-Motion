@@ -36,7 +36,7 @@ class MotionRecorder(threading.Thread):
 		self.seconds_pre = config.seconds_pre   # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post # Number of seconds to record post end of motion
 		self.file_pattern = '%y-%m-%dT%H-%M-%S' # Pattern for time.strfime
-		self.output_dir = Path(config.output_dir)
+		self.output_dir = Path(config.staging_dir)
 		self.captures = queue.Queue()
 
 
@@ -77,7 +77,7 @@ class MotionRecorder(threading.Thread):
 		"""Sets up PiCamera to record H.264 High/4.1 profile video with enough
 		intra frames that there is at least one in the in-memory circular buffer when
 		motion is detected."""
-		logging.info("Starting camera")
+		logging.info('Starting camera')
 		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=self.sensor_mode,
 		                                resolution=(self.width, self.height), framerate=self.frame_rate)
 		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=self.bit_rate)
@@ -85,7 +85,7 @@ class MotionRecorder(threading.Thread):
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=self.bit_rate,
 		                            inline_headers=True, intra_period=self.seconds_pre * self.frame_rate // 2)
-		logging.info("Waiting for camera to warm up...")
+		logging.info('Waiting for camera to warm up...')
 		self.camera.wait_recording(1)  # give camera some time to start up
 
 

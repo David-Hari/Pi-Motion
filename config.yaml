@@ -8,4 +8,5 @@ frame_rate: 15
 bit_rate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
 seconds_pre: 10
 seconds_post: 60
-output_dir: "./output"
+staging_dir: "./output"    # Seems to be faster to write to SD card
+final_dir: "/media/videos" # But USB stick has more space
