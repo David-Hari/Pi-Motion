@@ -16,18 +16,17 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 	frames = 0
 	window = 0
-	camera = None
-	trigger = threading.Event()
 	output = None
 
 
-	def __init__(self, camera, window=10, frames=4):
+	def __init__(self, camera, window, motion_threshold):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
-		self.frames = frames
+		self.motion_threshold = motion_threshold
 		self.window = window
 		self.previous_frames = deque(maxlen=window)
+		self.trigger = threading.Event()
 
 
 	def save_motion_vectors(self, file):
@@ -64,53 +63,13 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 			                              b'mvarray\x00', data.shape[0], data.shape[1], data[0].itemsize))
 			self.output.write(data)
 
-		# The motion vector array we get from the camera contains three values per
-		# macroblock: the X and Y components of the inter-block motion vector, and
-		# sum-of-differences value. The SAD value has a completely different meaning
-		# on a per-frame basis, but abstracted over a longer timeframe in a mostly-still
-		# video stream, it ends up estimating noise pretty well. Accordingly, we
-		# can use it in a decay function to reduce sensitivity to noise on a per-block
-		# basis
-
-		# Accumulate and decay SAD field
-		noise = self.noise
-		if not noise:
-			noise = np.zeros(data.shape, dtype=np.short)
-		shift = max(self.window.bit_length() - 2, 0)
-		noise -= (noise >> shift) + 1  # decay old noise
-		noise = np.add(noise, data['sad'] >> shift).clip(0)
-
 		# Get direction vector
 		direction = np.sqrt(
 			np.square(data['x'].astype(np.float)) +
 			np.square(data['y'].astype(np.float))
 		).clip(0, 255).astype(np.uint8)
 
-		# Look for the largest continuous area in picture that has motion
-		mask = (direction > (noise >> 4))   # Every motion vector exceeding current noise field
-		#TODO: What does this do?  labels,count = ndimage.label(mask) # label all motion areas
-		#sizes = ndimage.sum(mask, labels, range(count + 1)) # number of MV blocks per area
-		#largest = np.sort(sizes)[-1] # what's the size of the largest area
-
-		# Does that area size exceed the minimum motion threshold?
-		#motion = (largest >= self.area)
-
-		# Then consider motion repetition
-		#self.previous_frames.append(motion)
-
-		def count_longest(a, value):
-			ret = i = 0
-			while i < len(a):
-				for j in range(0, len(a) - i):
-					if a[i + j] != value: break
-					ret = max(ret, j + 1)
-				i += j + 1
-			return ret
-
-		longest_motion_sequence = count_longest(self.previous_frames, True)
-
-		if longest_motion_sequence >= self.frames:
+		if direction.sum() > self.motion_threshold:
 			self.trigger.set()
-		elif longest_motion_sequence < 1:
-			# clear motion flag once motion has ceased entirely
+		else:
 			self.trigger.clear()
