@@ -1,7 +1,6 @@
 # Taken from https://github.com/osmaa/pinymotion
 import threading
 from collections import deque
-
 import picamerax as picamera
 import picamerax.array
 import numpy as np
@@ -14,7 +13,6 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	Numpy is fast enough for that.
 	"""
 
-	frames = 0
 	window = 0
 	output = None
 
@@ -23,8 +21,8 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
-		self.motion_threshold = motion_threshold
 		self.window = window
+		self.motion_threshold = motion_threshold
 		self.previous_frames = deque(maxlen=window)
 		self.trigger = threading.Event()
 
@@ -40,21 +38,14 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	def wait(self, timeout=0.0):
 		return self.trigger.wait(timeout)
 
-	disabled = False
-	noise = None
-
 
 	# from profilehooks import profile
 	# @profile
 	def analyze(self, data):
 		"""Runs once per frame on a 16x16 motion vector block buffer (about 5000 values).
 		Must be faster than frame rate (max 100 ms for 10 fps stream).
-		Sets self.trigger Event to trigger capture.
+		Sets `self.trigger` Event to trigger capture.
 		"""
-
-		if self.disabled:
-			self.previous_frames.append(False)
-			return
 
 		import struct
 		if self.output:
@@ -69,7 +60,11 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 			np.square(data['y'].astype(np.float))
 		).clip(0, 255).astype(np.uint8)
 
-		if direction.sum() > self.motion_threshold:
+		direction_sum = direction.sum()
+		sad_sum = data['sad'].sum()
+		#TODO: Store these in arrays that can be accessed later to generate a graph or something
+
+		if direction_sum > self.motion_threshold:
 			self.trigger.set()
 		else:
 			self.trigger.clear()
