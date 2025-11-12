@@ -88,10 +88,14 @@ def create(recorder, video_dir: Path):
 				yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + data + b'\r\n'
 				stream.seek(0)
 				stream.truncate()
+		except GeneratorExit:
+			# Flask will trigger this when the client disconnects
+			print("Client disconnected from live stream")
 		except Exception as e:
 			print(f'Failed to provide MJPEG stream. {e}')
 			#TODO: Send the error message to client
-		print('Stopped sending preview')
+		finally:
+			print("Stopped sending preview")
 
 
 	@app.route('/')
