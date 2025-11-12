@@ -4,12 +4,15 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from MotionRecorder import MotionRecorder
+import webserver
 
 
 try:
 	config = OmegaConf.load('config.yaml')
 	with MotionRecorder(config) as recorder:
 		recorder.start()
+		web_app = webserver.create(recorder, Path(config.final_dir))
+		server_thread = webserver.run(web_app, host='0.0.0.0', port=config.web_port)
 		while True:
 			file_name = recorder.captures.get()
 			print(f'Motion capture in "{file_name}"')
