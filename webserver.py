@@ -2,49 +2,10 @@ import io
 import threading
 import logging
 from pathlib import Path
-from flask import Flask, Response, request, redirect, url_for, send_from_directory, render_template_string
+import flask
+from flask import Flask, Response, url_for
 
-# Simple templates
-INDEX_HTML = """<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Camera</title>
-<style>
-body { font-family: sans-serif; background:#111; color:#eee; margin:20px; }
-.container { max-width: 1000px; margin: auto; }
-.card { background:#1b1b1b; padding:14px; border-radius:6px; margin-bottom:14px; }
-a { color: #9cf; }
-img.live { width: 100%; height: auto; border: 1px solid #333; }
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>Camera</h1>
-  <div class="card">
-    <h2>Live</h2>
-    <p>Live MJPEG preview (click to open full-size)</p>
-    <a href="{{ url_for('live') }}"><img class="live" src="{{ url_for('live') }}" alt="live preview"></a>
-  </div>
 
-  <div class="card">
-    <h2>Captures</h2>
-    <p>Recorded events (most recent first)</p>
-    <ul>
-    {% for f in files %}
-      <li>
-        {{ f.name }} —
-        <a href="{{ url_for('download_capture', filename=f.name) }}">download</a>
-        &nbsp;|&nbsp;
-        <a href="{{ url_for('play_capture', filename=f.name) }}">play</a>
-      </li>
-    {% endfor %}
-    </ul>
-  </div>
-</div>
-</body>
-</html>
-"""
 
 PLAY_HTML = """<!doctype html>
 <html>
@@ -60,15 +21,17 @@ PLAY_HTML = """<!doctype html>
 </html>
 """
 
-def create(recorder, video_dir: Path):
+def create(camera, video_dir: Path):
 	print('Setting up web server')
+
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
-	app = Flask(__name__, static_folder=None)
+
+	web_dir = Path(__file__).parent / 'web'
+	app = Flask(__name__, static_folder=str(web_dir), template_folder=str(web_dir))
 
 	def mjpeg_generator():
 		"""Helper to produce MJPEG frames from the camera."""
-		camera = recorder.camera
 		if camera is None:
 			# No camera yet — yield a 1x1 black jpeg
 			default = b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + open('/dev/null','rb').read(0) + b'\r\n'
@@ -90,21 +53,27 @@ def create(recorder, video_dir: Path):
 				stream.truncate()
 		except GeneratorExit:
 			# Flask will trigger this when the client disconnects
-			print("Client disconnected from live stream")
+			print('Client disconnected from live stream')
 		except Exception as e:
 			print(f'Failed to provide MJPEG stream. {e}')
-			#TODO: Send the error message to client
+			#TODO: Show error page with the error message
 		finally:
-			print("Stopped sending preview")
+			print('Stopped sending preview')
 
 
 	@app.route('/')
 	def index():
-		return redirect(url_for('live'))
+		return flask.redirect(url_for('live'))
 
 
 	@app.route('/live')
 	def live():
+		"""Live stream page"""
+		return flask.render_template('live.html')
+
+
+	@app.route('/live/stream')
+	def live_stream():
 		"""Live MJPEG stream"""
 		return Response(mjpeg_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -117,17 +86,17 @@ def create(recorder, video_dir: Path):
 			for p in sorted(video_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
 				if p.is_file():
 					files.append(p)
-		return render_template_string(INDEX_HTML, files=files)
+		return flask.render_template('captures.html', files=files)
 
 
 	@app.route('/captures/download/<filename>')
 	def download_capture(filename):
-		return send_from_directory(video_dir, filename, as_attachment=False)
+		return flask.send_from_directory(video_dir, filename, as_attachment=False)
 
 
 	@app.route('/captures/play/<filename>')
 	def play_capture(filename):
-		return render_template_string(PLAY_HTML, name=filename)
+		return flask.render_template_string(PLAY_HTML, name=filename)
 
 	return app
 

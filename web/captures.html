@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Camera</title>
+	<style>
+		body { font-family: sans-serif; background:#111; color:#eee; margin:20px; }
+		.container { max-width: 1000px; margin: auto; }
+		.card { background:#1b1b1b; padding:14px; border-radius:6px; margin-bottom:14px; }
+		a { color: #9cf; }
+		img.live { width: 100%; height: auto; border: 1px solid #333; }
+	</style>
+</head>
+<body>
+<div class="container">
+	<h1>Camera</h1>
+	<div class="card">
+		<h2>Live</h2>
+		<p>Live MJPEG preview (click to open full-size)</p>
+		<a href="{{ url_for('live') }}"><img class="live" src="{{ url_for('live') }}" alt="live preview"></a>
+	</div>
+
+	<div class="card">
+		<h2>Captures</h2>
+		<p>Recorded events (most recent first)</p>
+		<ul>
+			{% for f in files %}
+			<li>
+				{{ f.name }} —
+				<a href="{{ url_for('download_capture', filename=f.name) }}">download</a>
+				&nbsp;|&nbsp;
+				<a href="{{ url_for('play_capture', filename=f.name) }}">play</a>
+			</li>
+			{% endfor %}
+		</ul>
+	</div>
+</div>
+</body>
+</html>
