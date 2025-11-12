@@ -1,6 +1,5 @@
 # Taken from https://github.com/osmaa/pinymotion
 import threading
-from collections import deque
 import picamerax as picamera
 import picamerax.array
 import numpy as np
@@ -13,26 +12,20 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	Numpy is fast enough for that.
 	"""
 
-	window = 0
-	output = None
-
-
-	def __init__(self, camera, window, motion_threshold):
+	def __init__(self, camera, motion_threshold):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
-		self.window = window
 		self.motion_threshold = motion_threshold
-		self.previous_frames = deque(maxlen=window)
 		self.trigger = threading.Event()
-
-
-	def save_motion_vectors(self, file):
-		self.output = open(file, 'ab')
 
 
 	def has_detected_motion(self):
 		return self.trigger.is_set()
+
+
+	def clear_trigger(self):
+		self.trigger.clear()
 
 
 	def wait(self, timeout=0.0):
@@ -47,13 +40,6 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		Sets `self.trigger` Event to trigger capture.
 		"""
 
-		import struct
-		if self.output:
-			self.output.write(struct.pack('>8sL?8sBBB',
-			                              b'frameno\x00', self.camera.frame.index, self.has_detected_motion(),
-			                              b'mvarray\x00', data.shape[0], data.shape[1], data[0].itemsize))
-			self.output.write(data)
-
 		# Get direction vector
 		direction = np.sqrt(
 			np.square(data['x'].astype(np.float)) +
@@ -66,5 +52,3 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 		if direction_sum > self.motion_threshold:
 			self.trigger.set()
-		else:
-			self.trigger.clear()

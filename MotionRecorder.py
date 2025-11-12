@@ -69,7 +69,6 @@ class MotionRecorder(threading.Thread):
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=self.bit_rate,
 		                            intra_period=self.seconds_pre * self.frame_rate // 2)
-		# TODO: May not need to set intra_period since we are re-encoding later using ffmpeg
 		self.camera.annotate_text_size = 15
 		print('Waiting for camera to warm up...')
 		self.camera.wait_recording(1)  # give camera some time to start up
@@ -83,28 +82,30 @@ class MotionRecorder(threading.Thread):
 		pick it up.
 		"""
 		while self.camera.recording:
-			print('1')
+			print('# 1')
 			if self.motion.wait(self.seconds_pre):
-				print('2')
+				print('# 2')
 				try:
 					# Start a new video, then append circular buffer to it until motion ends
-					print('Started writing video file')
+					self.motion.clear_trigger()
 					name = time.strftime(self.file_pattern)
+					print('Started writing video file')
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
-						print('3')
+						print('# 3')
 						self.append_buffer(output, header=True)
-						print('4')
+						print('# 4')
 						last_motion_time = time.monotonic()
 						while self.camera.recording:
-							print('5')
+							print('# 5')
 							if self.motion.has_detected_motion():
 								#TODO: This only checks if motion is happening right now.
-								print('motion')
+								print('# motion')
+								self.motion.clear_trigger()
 								last_motion_time = time.monotonic()
 							self.wait(self.seconds_pre / 2)
-							print('6')
+							print('# 6')
 							self.append_buffer(output)
-							print('7')
+							print('# 7')
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								break
 						self.captures.put(name)
