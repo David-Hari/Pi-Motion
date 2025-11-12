@@ -1,6 +1,6 @@
 #!/bin/bash
 
-video_dir="/mnt/video"
+video_dir="/media/videos"
 
 # Minimum free space in KB
 min_free=$((4 * 1024 * 1024))
