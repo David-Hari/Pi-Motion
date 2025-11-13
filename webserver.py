@@ -6,29 +6,14 @@ import flask
 from flask import Flask, Response, url_for
 
 
-
-PLAY_HTML = """<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Play {{ name }}</title></head>
-<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
-<h1>{{ name }}</h1>
-<video controls autoplay style="max-width:100%">
-  <source src="{{ url_for('download_capture', filename=name) }}" type="video/x-matroska">
-  Your browser does not support the video tag.
-</video>
-<p><a href="{{ url_for('index') }}">Back</a></p>
-</body>
-</html>
-"""
-
 def create(camera, video_dir: Path):
 	print('Setting up web server')
 
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
 
-	web_dir = Path(__file__).parent / 'web'
-	app = Flask(__name__, static_folder=str(web_dir), template_folder=str(web_dir))
+	web_dir = str(Path(__file__).parent / 'web')
+	app = Flask(__name__, static_folder=web_dir, template_folder=web_dir)
 
 	def mjpeg_generator():
 		"""Helper to produce MJPEG frames from the camera."""
@@ -91,12 +76,14 @@ def create(camera, video_dir: Path):
 
 	@app.route('/captures/download/<filename>')
 	def download_capture(filename):
+		"""Download the selected file"""
 		return flask.send_from_directory(video_dir, filename, as_attachment=False)
 
 
 	@app.route('/captures/play/<filename>')
 	def play_capture(filename):
-		return flask.render_template_string(PLAY_HTML, name=filename)
+		"""Play the selected file"""
+		return flask.render_template('play.html', name=filename)
 
 	return app
 
