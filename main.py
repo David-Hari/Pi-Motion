@@ -19,7 +19,7 @@ try:
 			try:
 				input_file = Path(config.staging_dir, file_name + '.h264')
 				output_file = Path(config.final_dir, file_name + '.mkv')
-				proc = subprocess.Popen(['./convert.sh', str(input_file), str(output_file), str(config.frame_rate)])
+				proc = subprocess.Popen(['./convert.sh', str(input_file), str(output_file), str(config.camera.frame_rate)])
 				print(f'Starting conversion in sub process {proc.pid}')
 			except Exception as e:
 				print(f'Failed to convert video. {e}')
