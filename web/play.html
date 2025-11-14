@@ -11,12 +11,11 @@
 	<a class="tab active" href="{{ url_for('captures') }}">Captures</a>
 </div>
 <div class="content-container">
-	<h1>{{ name }}</h1>
 	<video controls autoplay style="max-width:100%">
 		<source src="{{ url_for('download_capture', name=name) }}" type="video/mp4">
 		Your browser does not support the video tag.
 	</video>
-	<p><a href="{{ url_for('captures') }}">Back</a></p>
+	<div class="back"><a href="{{ url_for('captures') }}">&lt; Back</a></div>
 </div>
 </body>
 </html>

@@ -1,4 +1,10 @@
 
+:root {
+	--selection-colour: hsl(271, 50%, 40%);
+	--selection-colour-outline: hsl(271, 60%, 60%);
+	--main-border-radius: 8px;
+}
+
 body {
 	font-family: sans-serif;
 	max-width: 1328px;
@@ -14,13 +20,16 @@ a {
 a:hover {
 	text-decoration: underline;
 }
+a:visited {
+	color: hsl(44, 20%, 50%);
+}
 
 .tab {
 	display: inline-block;
 	min-width: 100px;
 	padding: 10px;
-	border-top-left-radius: 8px;
-	border-top-right-radius: 8px;
+	border-top-left-radius: var(--main-border-radius);
+	border-top-right-radius: var(--main-border-radius);
 	text-align: center;
 	color: hsl(44, 100%, 94%);
 }
@@ -30,10 +39,15 @@ a:hover {
 }
 
 .tab:hover:not(.active) {
-	background: hsl(271, 50%, 40%);
+	background-color: var(--selection-colour);
 }
+
+/* Override other rules for <a> */
 a.tab:hover {
-	text-decoration: none;  /* Override above rule for <a> */
+	text-decoration: none;
+}
+a.tab:visited {
+	color: inherit;
 }
 
 .tab.active {
@@ -43,9 +57,18 @@ a.tab:hover {
 .content-container {
 	position: relative;
 	padding: 14px;
-	border-radius: 8px;
+	border-radius: var(--main-border-radius);
 	border-top-left-radius: 0px;
 	background: hsl(0deg 0% 13%);
+}
+
+.back {
+	margin-top: 8px;
+	padding: 12px;
+}
+
+.back > a:visited {
+	color: inherit;
 }
 
 img.live {
@@ -57,7 +80,7 @@ img.live {
 .icon {
 	width: 20px;
 	height: 20px;
-	filter: brightness(91%);  /* Assumes svg is white */
+	filter: brightness(94%);  /* Assumes svg is white */
 }
 
 table {
@@ -79,12 +102,12 @@ table td {
 	border-style: solid;
 }
 table tbody tr td:first-child {
-	border-top-left-radius: 8px;
-	border-bottom-left-radius: 8px;
+	border-top-left-radius: var(--main-border-radius);
+	border-bottom-left-radius: var(--main-border-radius);
 }
 table tbody tr td:last-child {
-	border-top-right-radius: 8px;
-	border-bottom-right-radius: 8px;
+	border-top-right-radius: var(--main-border-radius);
+	border-bottom-right-radius: var(--main-border-radius);
 }
 
 table tbody tr:not(:hover):nth-child(even) {
@@ -92,15 +115,19 @@ table tbody tr:not(:hover):nth-child(even) {
 }
 
 table tbody tr:hover {
-	background-color: hsl(271, 50%, 40%);
+	background-color: var(--selection-colour);
 }
 table tbody tr:hover td {
-	border-top-color: hsl(271, 60%, 60%);
-	border-bottom-color: hsl(271, 60%, 60%);
+	border-top-color: var(--selection-colour-outline);
+	border-bottom-color: var(--selection-colour-outline);
 }
 table tbody tr:hover td:first-child {
-	border-left-color: hsl(271, 60%, 60%);
+	border-left-color: var(--selection-colour-outline);
 }
 table tbody tr:hover td:last-child {
-	border-right-color: hsl(271, 60%, 60%);
+	border-right-color: var(--selection-colour-outline);
+}
+
+td.download {
+	text-align: right;
 }

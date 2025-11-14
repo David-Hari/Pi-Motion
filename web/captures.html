@@ -15,8 +15,10 @@
 	<table>
 		<thead>
 		<tr>
-			<th>Date/time</th>
+			<th>Date / time</th>
 			<th>Length</th>
+			<th>Max motion</th>
+			<th>Max <abbr title="Sum of absolute differences">S.A.D</abbr></th>
 			<th></th>
 		</tr>
 		</thead>
@@ -25,7 +27,9 @@
 		<tr>
 			<td><a href="{{ url_for('play_capture', name=item.name) }}">{{ item.name }}</a></td>
 			<td></td>
-			<td>
+			<td>{{ item.max_motion }}</td>
+			<td>{{ item.max_sad }}</td>
+			<td class="download">
 				<a href="{{ url_for('download_capture', name=item.name) }}" download>
 					<img class="icon" src="{{ url_for('static', filename='download.svg') }}" alt="download">
 				</a>
