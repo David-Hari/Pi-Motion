@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>Motion Detection - Captures</title>
-	<link rel="stylesheet" type="text/css" href="/web/styles.css" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
 <div class="tab-container">
@@ -12,14 +12,28 @@
 </div>
 <div class="content-container">
 	<p>Recorded events</p>
-	<ul>
-		{% for f in files %}
-		<li>
-			<a href="{{ url_for('play_capture', filename=f.name) }}">{{ f.name }}</a> —
-			<a href="{{ url_for('download_capture', filename=f.name) }}">download</a>
-		</li>
+	<table>
+		<thead>
+		<tr>
+			<th>Date/time</th>
+			<th>Length</th>
+			<th></th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for item in items %}
+		<tr>
+			<td><a href="{{ url_for('play_capture', name=item.name) }}">{{ item.name }}</a></td>
+			<td></td>
+			<td>
+				<a href="{{ url_for('download_capture', name=item.name) }}" download>
+					<img class="icon" src="{{ url_for('static', filename='download.svg') }}" alt="download">
+				</a>
+			</td>
+		</tr>
 		{% endfor %}
-	</ul>
+		</tbody>
+	</table>
 </div>
 </body>
 </html>

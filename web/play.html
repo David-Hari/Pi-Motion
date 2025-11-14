@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>Motion Detection - Captures</title>
-	<link rel="stylesheet" type="text/css" href="/web/styles.css" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
 <div class="tab-container">
@@ -13,7 +13,7 @@
 <div class="content-container">
 	<h1>{{ name }}</h1>
 	<video controls autoplay style="max-width:100%">
-		<source src="{{ url_for('download_capture', filename=name) }}" type="video/x-matroska">
+		<source src="{{ url_for('download_capture', name=name) }}" type="video/mp4">
 		Your browser does not support the video tag.
 	</video>
 	<p><a href="{{ url_for('captures') }}">Back</a></p>

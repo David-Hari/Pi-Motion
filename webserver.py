@@ -2,8 +2,14 @@ import io
 import threading
 import logging
 from pathlib import Path
+from dataclasses import dataclass
 import flask
 from flask import Flask, Response, url_for
+
+
+@dataclass
+class FileInfo:
+	name: str
 
 
 def create(camera, video_dir: Path):
@@ -66,24 +72,24 @@ def create(camera, video_dir: Path):
 	@app.route('/captures')
 	def captures():
 		"""List files in the video directory"""
-		files = []
+		items = []
 		if video_dir.exists():
-			for p in sorted(video_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
-				if p.is_file():
-					files.append(p)
-		return flask.render_template('captures.html', files=files)
+			for path in sorted(video_dir.iterdir(), key=lambda x: x.stat().st_mtime):
+				if path.is_file():
+					items.append(FileInfo(path.stem))
+		return flask.render_template('captures.html', items=items)
 
 
-	@app.route('/captures/download/<filename>')
-	def download_capture(filename):
+	@app.route('/captures/download/<name>')
+	def download_capture(name):
 		"""Download the selected file"""
-		return flask.send_from_directory(video_dir, filename, as_attachment=False)
+		return flask.send_from_directory(video_dir, name + '.mp4', as_attachment=False)
 
 
-	@app.route('/captures/play/<filename>')
-	def play_capture(filename):
+	@app.route('/captures/play/<name>')
+	def play_capture(name):
 		"""Play the selected file"""
-		return flask.render_template('play.html', name=filename)
+		return flask.render_template('play.html', name=name)
 
 	return app
 
