@@ -10,6 +10,13 @@ from omegaconf import OmegaConf
 from MotionVectorReader import MotionVectorReader
 
 
+#PiCamera settings that can be set from config file
+allowed_camera_settings = [
+	'awb_mode', 'brightness', 'contrast', 'saturation',
+	'exposure_mode', 'exposure_compensation', 'iso', 'sharpness',
+	'hflip', 'vflip', 'rotation', 'video_denoise', 'annotate_text_size'
+]
+
 class MotionRecorder(threading.Thread):
 	"""
 	Record video into a circular memory buffer and extract motion vectors for simple motion detection analysis.
@@ -21,14 +28,12 @@ class MotionRecorder(threading.Thread):
 		self.camera = None
 		self.stream = None
 		self.motion = None
-		self.width = config.width
-		self.height = config.height
-		self.sensor_mode = config.sensor_mode
-		self.frame_rate = config.frame_rate
-		self.bit_rate = config.bit_rate
+		self.config = config
+		self.width = config.camera.width
+		self.height = config.camera.height
 		self.seconds_pre = config.seconds_pre    # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post  # Number of seconds to record post end of motion
-		self.motion_threshold = config.motion_threshold  # Sum of all motion vectors should exceed this value
+		self.motion_threshold = config.motion_threshold     # Sum of all motion vectors should exceed this value
 		self.file_pattern = '%Y-%m-%dT%H-%M-%S'  # Date pattern for saved recordings
 		self.label_pattern = '%Y-%m-%d %H:%M'    # Date pattern for annotation text
 		self.output_dir = Path(config.staging_dir)
@@ -62,14 +67,20 @@ class MotionRecorder(threading.Thread):
 		intra frames that there is at least one in the in-memory circular buffer when
 		motion is detected."""
 		print('Starting camera')
-		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=self.sensor_mode,
-		                                resolution=(self.width, self.height), framerate=self.frame_rate)
-		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=self.bit_rate)
+		camera_settings = self.config.camera
+		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
+		                                resolution=(self.width, self.height), framerate=camera_settings.frame_rate)
+		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bit_rate)
 		self.motion = MotionVectorReader(self.camera, motion_threshold=self.motion_threshold)
 		self.camera.start_recording(self.stream, motion_output=self.motion,
-		                            format='h264', profile='high', level='4.1', bitrate=self.bit_rate,
-		                            intra_period=self.seconds_pre * self.frame_rate // 2)
+		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bit_rate,
+		                            intra_period=self.seconds_pre * camera_settings.frame_rate // 2)
+
+		#TODO: Iterate over allowed_camera_settings and read these values from config dict
 		self.camera.annotate_text_size = 15
+		self.camera.hflip = camera_settings.hflip
+		self.camera.vflip = camera_settings.vflip
+
 		print('Waiting for camera to warm up...')
 		self.camera.wait_recording(1)  # Give camera some time to start up
 		self.motion.clear_trigger()    # then clear the triggered.

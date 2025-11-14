@@ -1,17 +1,21 @@
 
-# Best mode is 4, which gives full field of view at 4:3 aspect ratio
-# and 2x2 binning, resulting in an area of 1296x972
-sensor_mode: 4
-width: 1296
-height: 972
-frame_rate: 15
-bit_rate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
+camera:
+  # Best mode is 4, which gives full field of view at 4:3 aspect ratio
+  # and 2x2 binning, resulting in an area of 1296x972
+  sensor_mode: 4
+  width: 1296
+  height: 972
+  frame_rate: 15
+  bit_rate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
+  hflip: True        # Because camera is mounted upside down
+  vflip: True
+
 staging_dir: "./output"    # Seems to be faster to write to SD card
 final_dir: "/media/videos" # But USB stick has more space
 
 seconds_pre: 10
 seconds_post: 60
 
-motion_threshold: 1500  # Sum of all motion vectors should exceed this value
+motion_threshold: 1500     # Sum of all motion vectors should exceed this value
 
 web_port: 8080
