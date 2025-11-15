@@ -1,19 +1,12 @@
 import io
 import threading
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
-from dataclasses import dataclass
 import flask
 from flask import Flask, Response, url_for
 
 from MotionRecorder import CaptureInfo
-
-
-@dataclass
-class CaptureWebInfo:
-	info: CaptureInfo
-	motion_img: str
-	sad_img: str
 
 
 def create(camera, video_dir: Path):
@@ -79,13 +72,16 @@ def create(camera, video_dir: Path):
 		if video_dir.exists():
 			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
 				json_path = path.with_suffix('.json')
-				items.append(
-					CaptureWebInfo(
-						CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else CaptureInfo(path.stem, 0, 0, 0, 0),
-						str(path.with_name(f'{path.stem}-motion.png').absolute()),
-						str(path.with_name(f'{path.stem}-sad.png').absolute())
-					)
-				)
+				info = CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else CaptureInfo(path.stem, 0, 0, 0, 0)
+				items.append({
+					'name': info.name,
+					'timestamp': format_time(info.timestamp_utc),
+					'length': format_seconds(info.length_seconds),
+					'max_motion': int(info.max_motion),
+					'max_sad': info.max_sad,
+					'motion_img': str(path.with_name(f'{path.stem}-motion.png').absolute()),
+					'sad_img': str(path.with_name(f'{path.stem}-sad.png').absolute())
+				})
 		return flask.render_template('captures.html', items=items)
 
 
@@ -101,6 +97,13 @@ def create(camera, video_dir: Path):
 		return flask.render_template('play.html', name=name)
 
 	return app
+
+
+def format_time(t):
+	return datetime.fromtimestamp(t, tz=timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
+
+def format_seconds(s):
+	return f'{int(s/60):0d}m:{int(s%60):02d}s'
 
 
 def run(app, host, port):

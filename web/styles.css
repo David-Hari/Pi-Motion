@@ -89,14 +89,13 @@ table {
 	border-spacing: 0px;
 }
 
-table th {
-	text-align: left;
-	padding: 8px 26px;
-}
-
+table th,
 table td {
 	text-align: left;
 	padding: 8px 20px;
+}
+
+table td {
 	border-width: 1px;
 	border-color: transparent;
 	border-style: solid;

@@ -25,12 +25,12 @@
 		<tbody>
 		{% for item in items %}
 		<tr>
-			<td><a href="{{ url_for('play_capture', name=item.info.name) }}">{{ item.info.name }}</a></td>
-			<td>{{ item.info.length_seconds }}</td>  <!-- TODO: Format as minutes:seconds -->
-			<td>{{ item.info.max_motion }}</td>
-			<td>{{ item.info.max_sad }}</td>
+			<td><a href="{{ url_for('play_capture', name=item.name) }}">{{ item.timestamp }}</a></td>
+			<td>{{ item.length }}</td>
+			<td>{{ item.max_motion }}</td>
+			<td>{{ item.max_sad }}</td>
 			<td class="download">
-				<a href="{{ url_for('download_capture', name=item.info.name) }}" download>
+				<a href="{{ url_for('download_capture', name=item.name) }}" download>
 					<img class="icon" src="{{ url_for('static', filename='download.svg') }}" alt="download">
 				</a>
 			</td>
