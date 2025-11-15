@@ -47,7 +47,6 @@ def create(camera, video_dir: Path):
 			print('Client disconnected from live stream')
 		except Exception as e:
 			print(f'Failed to provide MJPEG stream. {e}')
-			#TODO: Show error page with the error message
 		finally:
 			print('Stopped sending preview')
 
