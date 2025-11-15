@@ -1,5 +1,6 @@
 # Taken from https://github.com/osmaa/pinymotion
 import threading
+from collections import deque
 from dataclasses import dataclass
 import picamerax as picamera
 import picamerax.array
@@ -20,14 +21,16 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	Numpy is fast enough for that.
 	"""
 
-	def __init__(self, camera, motion_threshold):
+	def __init__(self, camera, pre_frames, motion_threshold):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
 		self.motion_threshold = motion_threshold
 		self.trigger = threading.Event()
+		self.pre_record_statistics = deque(maxlen=pre_frames)
 		self.statistics = []
 		self.stats_lock = threading.Lock()
+		self.is_recording = False
 
 
 	def has_detected_motion(self):
@@ -41,23 +44,24 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	def clear_trigger(self):
 		self.trigger.clear()
 
-
 	def start_capturing_statistics(self):
-		# TODO: Have circular buffer of length seconds_pre * frame_rate
-		# In this method, copy that to self.statistics and start adding to it instead
-		pass
+		with self.stats_lock:
+			self.is_recording = True
+			self.statistics = list(self.pre_record_statistics)
+
+	def stop_capturing_and_get_stats(self):
+		with self.stats_lock:
+			self.is_recording = False
+			s = self.statistics.copy()
+			self.pre_record_statistics.clear()
+			self.statistics.clear()
+			return s
 
 
 	def clear_statistics(self):
 		with self.stats_lock:
+			self.pre_record_statistics.clear()
 			self.statistics.clear()
-
-
-	def get_and_clear_statistics(self):
-		with self.stats_lock:
-			s = self.statistics.copy()
-			self.statistics.clear()
-			return s
 
 
 	# from profilehooks import profile
@@ -78,7 +82,11 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		sad_sum = data['sad'].sum().item()
 
 		with self.stats_lock:
-			self.statistics.append(FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum))
+			stats = FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum)
+			if self.is_recording:
+				self.statistics.append(stats)
+			else:
+				self.pre_record_statistics.append(stats)
 
 		if direction_sum > self.motion_threshold:
 			self.trigger.set()

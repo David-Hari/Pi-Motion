@@ -105,7 +105,8 @@ class MotionRecorder(threading.Thread):
 		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
 		                                resolution=(self.width, self.height), framerate=camera_settings.frame_rate)
 		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bit_rate)
-		self.motion = MotionVectorReader(self.camera, motion_threshold=self.motion_threshold)
+		self.motion = MotionVectorReader(self.camera, pre_frames=self.seconds_pre * camera_settings.frame_rate,
+		                                 motion_threshold=self.motion_threshold)
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bit_rate,
 		                            intra_period=self.seconds_pre * camera_settings.frame_rate // 2)
@@ -133,9 +134,11 @@ class MotionRecorder(threading.Thread):
 				try:
 					start_time = self.camera_time_to_unix_time(self.camera.timestamp) - self.seconds_pre
 					self.motion.clear_trigger()
-					name = time.strftime(self.file_pattern)
+					self.motion.start_capturing_statistics()
+
 					# Start a new video, then append circular buffer to it until motion ends
 					print('Started writing video file')
+					name = time.strftime(self.file_pattern)
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
 						self.append_buffer(output, header=True)
 						last_motion_time = time.monotonic()
@@ -148,7 +151,7 @@ class MotionRecorder(threading.Thread):
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								break
 						end_time = self.camera_time_to_unix_time(self.camera.timestamp)
-						motion_stats = self.convert_frame_times(self.motion.get_and_clear_statistics())
+						motion_stats = self.convert_frame_times(self.motion.stop_capturing_and_get_stats())
 						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
 						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
 						self.captures.put(
