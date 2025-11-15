@@ -24,7 +24,7 @@ allowed_camera_settings = [
 @dataclass
 class FrameStats:
 	timestamp_utc: float
-	motion_sum: int
+	motion_sum: float
 	sad_sum: int
 
 
@@ -32,8 +32,8 @@ class FrameStats:
 class CaptureInfo:
 	name: str
 	timestamp_utc: float
-	length: int
-	max_motion: int
+	length_seconds: float
+	max_motion: float
 	max_sad: int
 
 	@classmethod
@@ -131,7 +131,7 @@ class MotionRecorder(threading.Thread):
 		while self.camera.recording:
 			if self.motion.wait(self.seconds_pre):
 				try:
-					start_time = self.camera_time_to_wall_time(self.camera.timestamp) - self.seconds_pre
+					start_time = self.camera_time_to_unix_time(self.camera.timestamp) - self.seconds_pre
 					self.motion.clear_trigger()
 					name = time.strftime(self.file_pattern)
 					# Start a new video, then append circular buffer to it until motion ends
@@ -147,7 +147,7 @@ class MotionRecorder(threading.Thread):
 							self.append_buffer(output)
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								break
-						end_time = self.camera_time_to_wall_time(self.camera.timestamp)
+						end_time = self.camera_time_to_unix_time(self.camera.timestamp)
 						motion_stats = self.convert_frame_times(self.motion.get_and_clear_statistics())
 						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
 						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
@@ -179,12 +179,15 @@ class MotionRecorder(threading.Thread):
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
 
 
-	def camera_time_to_wall_time(self, t):
-		"""With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot."""
+	def camera_time_to_unix_time(self, t):
+		"""
+		With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot.
+		Return the time in seconds since the epoch as a floating point number.
+		"""
 		return self.boot_timestamp_utc + (t / 1000000)
 
 	def convert_frame_times(self, frame_stats):
 		return [
-			FrameStats(self.camera_time_to_wall_time(fs.timestamp), fs.motion_sum, fs.sad_sum)
+			FrameStats(self.camera_time_to_unix_time(fs.timestamp), fs.motion_sum, fs.sad_sum)
 			for fs in frame_stats
 		]

@@ -30,9 +30,10 @@ try:
 				print(f'Failed to convert video. {e}')
 
 			json_path = final_dir.joinpath(f'{capture_info.name}.json')
-			json_path.write_text(capture_info.t_json(), encoding='utf_8')
+			json_path.write_text(capture_info.to_json(), encoding='utf_8')
 			#TODO:
 			#  Create image file from statistics, height will be scaled to self.motion_upper_bound. Use logarithmic scaling
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):
+	print('Shutting down')
 	exit()

@@ -81,7 +81,7 @@ def create(camera, video_dir: Path):
 				json_path = path.with_suffix('.json')
 				items.append(
 					CaptureWebInfo(
-						CaptureInfo.from_json(json_path.read_text()),
+						CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else CaptureInfo(path.stem, 0, 0, 0, 0),
 						str(path.with_name(f'{path.stem}-motion.png').absolute()),
 						str(path.with_name(f'{path.stem}-sad.png').absolute())
 					)

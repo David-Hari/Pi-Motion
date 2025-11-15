@@ -9,7 +9,7 @@ import numpy as np
 @dataclass
 class FrameStats:
 	timestamp: int
-	motion_sum: int
+	motion_sum: float
 	sad_sum: int
 
 
@@ -42,6 +42,12 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		self.trigger.clear()
 
 
+	def start_capturing_statistics(self):
+		# TODO: Have circular buffer of length seconds_pre * frame_rate
+		# In this method, copy that to self.statistics and start adding to it instead
+		pass
+
+
 	def clear_statistics(self):
 		with self.stats_lock:
 			self.statistics.clear()
@@ -49,9 +55,9 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 	def get_and_clear_statistics(self):
 		with self.stats_lock:
-			copy = self.statistics.copy()
+			s = self.statistics.copy()
 			self.statistics.clear()
-			return copy
+			return s
 
 
 	# from profilehooks import profile
@@ -66,10 +72,10 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		direction = np.sqrt(
 			np.square(data['x'].astype(np.float)) +
 			np.square(data['y'].astype(np.float))
-		).clip(0, 255).astype(np.uint8)
+		)
 
-		direction_sum = direction.sum()
-		sad_sum = data['sad'].sum()
+		direction_sum = direction.sum().item()
+		sad_sum = data['sad'].sum().item()
 
 		with self.stats_lock:
 			self.statistics.append(FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum))
