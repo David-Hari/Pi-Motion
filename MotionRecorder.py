@@ -3,6 +3,9 @@ import io
 import time
 import queue
 import threading
+from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass, asdict
+import json
 from pathlib import Path
 import picamerax as picamera
 from omegaconf import OmegaConf
@@ -16,6 +19,30 @@ allowed_camera_settings = [
 	'exposure_mode', 'exposure_compensation', 'iso', 'sharpness',
 	'hflip', 'vflip', 'rotation', 'video_denoise', 'annotate_text_size'
 ]
+
+
+@dataclass
+class FrameStats:
+	timestamp_utc: float
+	motion_sum: int
+	sad_sum: int
+
+
+@dataclass
+class CaptureInfo:
+	name: str
+	timestamp_utc: float
+	length: int
+	max_motion: int
+	max_sad: int
+
+	@classmethod
+	def from_json(cls, s: str):
+		return cls(**json.loads(s))
+
+	def to_json(self) -> str:
+		return json.dumps(asdict(self))
+
 
 class MotionRecorder(threading.Thread):
 	"""
@@ -34,10 +61,17 @@ class MotionRecorder(threading.Thread):
 		self.seconds_pre = config.seconds_pre    # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post  # Number of seconds to record post end of motion
 		self.motion_threshold = config.motion_threshold     # Sum of all motion vectors should exceed this value
+		self.motion_upper_bound = config.motion_upper_bound # This is the maximum we expect the sum to be
 		self.file_pattern = '%Y-%m-%dT%H-%M-%S'  # Date pattern for saved recordings
 		self.label_pattern = '%Y-%m-%d %H:%M'    # Date pattern for annotation text
 		self.output_dir = Path(config.staging_dir)
 		self.captures = queue.Queue()
+
+		# Get time since boot. This is needed as the camera timestamps are relative to this.
+		with open('/proc/uptime') as f:
+			uptime_seconds = float(f.read().split()[0])
+		now = datetime.now(timezone.utc)
+		self.boot_timestamp_utc = (now - timedelta(seconds=uptime_seconds)).timestamp()
 
 
 	def __enter__(self):
@@ -84,21 +118,23 @@ class MotionRecorder(threading.Thread):
 		print('Waiting for camera to warm up...')
 		self.camera.wait_recording(1)  # Give camera some time to start up
 		self.motion.clear_trigger()    # then clear the triggered.
+		self.motion.clear_statistics()
 
 
 	def run(self):
-		"""Main loop of the motion recorder. Waits for trigger from the motion detector
-		async task and writes in-memory circular buffer to file every time it happens,
-		until motion detection trigger. After each recording, the name of the file
-		is posted to captures queue, where whatever is consuming the recordings can
-		pick it up.
+		"""
+		Main loop of the motion recorder. Waits for trigger from the motion detector async task
+		and writes in-memory circular buffer to file every time it happens, until motion detection trigger.
+		After each recording, info is posted to captures queue, where whatever is consuming the recordings
+		can pick it up.
 		"""
 		while self.camera.recording:
 			if self.motion.wait(self.seconds_pre):
 				try:
-					# Start a new video, then append circular buffer to it until motion ends
+					start_time = self.camera_time_to_wall_time(self.camera.timestamp) - self.seconds_pre
 					self.motion.clear_trigger()
 					name = time.strftime(self.file_pattern)
+					# Start a new video, then append circular buffer to it until motion ends
 					print('Started writing video file')
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
 						self.append_buffer(output, header=True)
@@ -111,7 +147,14 @@ class MotionRecorder(threading.Thread):
 							self.append_buffer(output)
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								break
-						self.captures.put(name)
+						end_time = self.camera_time_to_wall_time(self.camera.timestamp)
+						motion_stats = self.convert_frame_times(self.motion.get_and_clear_statistics())
+						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
+						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
+						self.captures.put(
+							(CaptureInfo(name, start_time, end_time - start_time, max_motion, max_sad),
+							 motion_stats)
+						)
 					print('Finished writing video file')
 				except picamera.PiCameraError as e:
 					print('Could not save recording: ' + e)
@@ -135,3 +178,13 @@ class MotionRecorder(threading.Thread):
 			camera.annotate_text = time.strftime(self.label_pattern)
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
 
+
+	def camera_time_to_wall_time(self, t):
+		"""With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot."""
+		return self.boot_timestamp_utc + (t / 1000000)
+
+	def convert_frame_times(self, frame_stats):
+		return [
+			FrameStats(self.camera_time_to_wall_time(fs.timestamp), fs.motion_sum, fs.sad_sum)
+			for fs in frame_stats
+		]

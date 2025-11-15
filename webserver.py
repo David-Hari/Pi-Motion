@@ -6,10 +6,14 @@ from dataclasses import dataclass
 import flask
 from flask import Flask, Response, url_for
 
+from MotionRecorder import CaptureInfo
+
 
 @dataclass
-class FileInfo:
-	name: str
+class CaptureWebInfo:
+	info: CaptureInfo
+	motion_img: str
+	sad_img: str
 
 
 def create(camera, video_dir: Path):
@@ -73,9 +77,15 @@ def create(camera, video_dir: Path):
 		"""List files in the video directory"""
 		items = []
 		if video_dir.exists():
-			for path in sorted(video_dir.iterdir(), key=lambda x: x.stat().st_mtime):
-				if path.is_file():
-					items.append(FileInfo(path.stem))
+			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
+				json_path = path.with_suffix('.json')
+				items.append(
+					CaptureWebInfo(
+						CaptureInfo.from_json(json_path.read_text()),
+						str(path.with_name(f'{path.stem}-motion.png').absolute()),
+						str(path.with_name(f'{path.stem}-sad.png').absolute())
+					)
+				)
 		return flask.render_template('captures.html', items=items)
 
 

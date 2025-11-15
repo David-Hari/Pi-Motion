@@ -17,5 +17,6 @@ seconds_pre: 10
 seconds_post: 60
 
 motion_threshold: 1500     # Sum of all motion vectors should exceed this value
+motion_upper_bound: 100000 # This is the maximum we expect the sum to be
 
 web_port: 8080

@@ -1,8 +1,16 @@
 # Taken from https://github.com/osmaa/pinymotion
 import threading
+from dataclasses import dataclass
 import picamerax as picamera
 import picamerax.array
 import numpy as np
+
+
+@dataclass
+class FrameStats:
+	timestamp: int
+	motion_sum: int
+	sad_sum: int
 
 
 class MotionVectorReader(picamera.array.PiMotionAnalysis):
@@ -18,25 +26,39 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		self.camera = camera
 		self.motion_threshold = motion_threshold
 		self.trigger = threading.Event()
+		self.statistics = []
+		self.stats_lock = threading.Lock()
 
 
 	def has_detected_motion(self):
 		return self.trigger.is_set()
 
 
+	def wait(self, timeout=0.0):
+		return self.trigger.wait(timeout)
+
+
 	def clear_trigger(self):
 		self.trigger.clear()
 
 
-	def wait(self, timeout=0.0):
-		return self.trigger.wait(timeout)
+	def clear_statistics(self):
+		with self.stats_lock:
+			self.statistics.clear()
+
+
+	def get_and_clear_statistics(self):
+		with self.stats_lock:
+			copy = self.statistics.copy()
+			self.statistics.clear()
+			return copy
 
 
 	# from profilehooks import profile
 	# @profile
 	def analyze(self, data):
 		"""Runs once per frame on a 16x16 motion vector block buffer (about 5000 values).
-		Must be faster than frame rate (max 100 ms for 10 fps stream).
+		Must be faster than frame rate (e.g. max 100 ms for 10 fps stream).
 		Sets `self.trigger` Event to trigger capture.
 		"""
 
@@ -48,7 +70,9 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 
 		direction_sum = direction.sum()
 		sad_sum = data['sad'].sum()
-		#TODO: Store these in arrays that can be accessed later to generate a graph or something
+
+		with self.stats_lock:
+			self.statistics.append(FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum))
 
 		if direction_sum > self.motion_threshold:
 			self.trigger.set()
