@@ -1,0 +1,4 @@
+
+* Write motion and sad values to .bin file
+* In webserver.graph_image, generate image using Grapher if it does not exist (and .bin file does)
+* Maybe re-generate if it detects config change. That would require reloading config file and comparing old with new
