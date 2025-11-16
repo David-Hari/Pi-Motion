@@ -7,10 +7,12 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, asdict
 import json
 from pathlib import Path
+from typing import List
+
 import picamerax as picamera
 from omegaconf import OmegaConf
 
-from MotionVectorReader import MotionVectorReader
+from MotionVectorReader import MotionVectorReader, FrameStats as MVFrameStats
 
 
 #PiCamera settings that can be set from config file
@@ -61,7 +63,6 @@ class MotionRecorder(threading.Thread):
 		self.seconds_pre = config.seconds_pre    # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post  # Number of seconds to record post end of motion
 		self.motion_threshold = config.motion_threshold     # Sum of all motion vectors should exceed this value
-		self.motion_upper_bound = config.motion_upper_bound # This is the maximum we expect the sum to be
 		self.file_pattern = '%Y-%m-%dT%H-%M-%S'  # Date pattern for saved recordings
 		self.label_pattern = '%Y-%m-%d %H:%M'    # Date pattern for annotation text
 		self.output_dir = Path(config.staging_dir)
@@ -149,6 +150,7 @@ class MotionRecorder(threading.Thread):
 							self.wait(self.seconds_pre / 2)
 							self.append_buffer(output)
 							if time.monotonic() - last_motion_time > self.seconds_post:
+								#TODO: Also have a max recording time. If it goes over that, stop it
 								break
 						end_time = self.camera_time_to_unix_time(self.camera.timestamp)
 						motion_stats = self.convert_frame_times(self.motion.stop_capturing_and_get_stats())
@@ -182,14 +184,14 @@ class MotionRecorder(threading.Thread):
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
 
 
-	def camera_time_to_unix_time(self, t):
+	def camera_time_to_unix_time(self, t: float):
 		"""
 		With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot.
 		Return the time in seconds since the epoch as a floating point number.
 		"""
 		return self.boot_timestamp_utc + (t / 1000000)
 
-	def convert_frame_times(self, frame_stats):
+	def convert_frame_times(self, frame_stats: List[MVFrameStats]):
 		return [
 			FrameStats(self.camera_time_to_unix_time(fs.timestamp), fs.motion_sum, fs.sad_sum)
 			for fs in frame_stats
