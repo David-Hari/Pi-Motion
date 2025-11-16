@@ -15,14 +15,6 @@ from omegaconf import OmegaConf
 from MotionVectorReader import MotionVectorReader, FrameStats as MVFrameStats
 
 
-#PiCamera settings that can be set from config file
-allowed_camera_settings = [
-	'awb_mode', 'brightness', 'contrast', 'saturation',
-	'exposure_mode', 'exposure_compensation', 'iso', 'sharpness',
-	'hflip', 'vflip', 'rotation', 'video_denoise', 'annotate_text_size'
-]
-
-
 @dataclass
 class FrameStats:
 	timestamp_utc: float

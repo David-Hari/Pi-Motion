@@ -8,14 +8,26 @@ import webserver
 from Grapher import Grapher
 
 
+
+#PiCamera settings that can be set from config file
+allowed_camera_settings = [
+	'awb_mode', 'brightness', 'contrast', 'saturation',
+	'exposure_mode', 'exposure_compensation', 'iso', 'sharpness',
+	'hflip', 'vflip', 'rotation', 'video_denoise', 'annotate_text_size'
+]
+#TODO:
+# Somehow make OmegaConf aware of the above as camera.xxx
+# Make dirs in config Path objects
+# Give defaults to settings and maybe min/max
+
 try:
 	config = OmegaConf.load('config.yaml')
 	staging_dir = Path(config.staging_dir)
 	final_dir = Path(config.final_dir)
-	g = Grapher(final_dir, config.motion_threshold, config.motion_upper_bound)
+	g = Grapher(final_dir, config)
 	with MotionRecorder(config) as recorder:
 		recorder.start()
-		web_app = webserver.create(recorder.camera, final_dir)
+		web_app = webserver.create(recorder.camera, config)
 		webserver.run(web_app, host='0.0.0.0', port=config.web_port)
 		while True:
 			capture = recorder.captures.get()

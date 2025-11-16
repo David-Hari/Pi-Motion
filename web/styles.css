@@ -136,7 +136,7 @@ a.tab:visited {
 	text-align: right;
 }
 
-.captures td.download .icon {
+.captures td.download img {
 	width: 20px;
 	height: 20px;
 	filter: brightness(94%);  /* Assumes svg is white */
@@ -153,6 +153,10 @@ a.tab:visited {
 /*  Play page                   */
 /********************************/
 
+.play video {
+	max-width: 100%
+}
+
 .play .back {
 	margin-top: 8px;
 	padding: 12px;
@@ -162,8 +166,10 @@ a.tab:visited {
 	color: inherit;
 }
 
-.play > .motion-graph {
+.play .motion-graph,
+.play .sad-graph {
 	display: block;
+	margin: 4px 0;
     height: 20px;
-    max-width: 600px;
+    width: 100%;
 }

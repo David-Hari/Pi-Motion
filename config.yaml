@@ -16,7 +16,8 @@ final_dir: "/media/videos" # But USB stick has more space
 seconds_pre: 10
 seconds_post: 60
 
-motion_threshold: 1500     # Start capture if sum of all motion vectors exceeds this value
-motion_upper_bound: 100000 # This is the maximum we expect the sum to be. Used for graph.
+motion_threshold: 1500    # Start capture if sum of all motion vectors exceeds this value
+motion_upper_bound: 50000 # This is the maximum we expect the sum to be. Used for graph.
+scale_boost: 10           # How much to boost lower values in log-scaled graphs. 5 = mild, 10 = medium, 50 = strong, 100 = very strong
 
 web_port: 8080

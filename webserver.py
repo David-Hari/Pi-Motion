@@ -3,17 +3,19 @@ import threading
 import logging
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from omegaconf import OmegaConf
 import flask
 from flask import Flask, Response, url_for
 
 from MotionRecorder import CaptureInfo
 
 
-def create(camera, video_dir: Path):
+def create(camera, config: OmegaConf):
 	print('Setting up web server')
 
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
+	video_dir = Path(config.final_dir)
 
 	web_dir = str(Path(__file__).parent / 'web')
 	app = Flask(__name__, static_folder=web_dir, template_folder=web_dir)
