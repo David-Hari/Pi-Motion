@@ -7,11 +7,7 @@ To create the service:
 > sudo systemctl enable pimotion.service
 
 
-To create the cron jobs:
+To create the cron job:
 
 > crontab -e
-# Monitor temperature
-*/10 * * * * /home/pi/temperature.sh
-
-# Cleanup video directory
-#0 * * * * /home/pi/cleanup.sh 
+0 * * * * /home/pi/cleanup.sh 
