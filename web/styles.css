@@ -24,6 +24,11 @@ a:visited {
 	color: hsl(44, 20%, 50%);
 }
 
+
+/********************************/
+/*  Tabs                        */
+/********************************/
+
 .tab {
 	display: inline-block;
 	min-width: 100px;
@@ -54,6 +59,11 @@ a.tab:visited {
 	background: hsl(0deg 0% 13%);
 }
 
+
+/********************************/
+/*  General content             */
+/********************************/
+
 .content-container {
 	position: relative;
 	padding: 14px;
@@ -62,71 +72,98 @@ a.tab:visited {
 	background: hsl(0deg 0% 13%);
 }
 
-.back {
-	margin-top: 8px;
-	padding: 12px;
-}
 
-.back > a:visited {
-	color: inherit;
-}
+/********************************/
+/*  Live page                   */
+/********************************/
 
-img.live {
+.live img.live-stream {
 	max-width: 100%;
 	height: auto;
 	border: 2px solid black;
 }
 
-.icon {
-	width: 20px;
-	height: 20px;
-	filter: brightness(94%);  /* Assumes svg is white */
-}
 
-table {
+/********************************/
+/*  Captures page               */
+/********************************/
+
+.captures table {
 	width: 100%;
 	border-collapse: separate;
 	border-spacing: 0px;
 }
 
-table th,
-table td {
+.captures table th,
+.captures table td {
 	text-align: left;
 	padding: 8px 20px;
 }
 
-table td {
+.captures table td {
 	border-width: 1px;
 	border-color: transparent;
 	border-style: solid;
 }
-table tbody tr td:first-child {
+.captures table tbody tr td:first-child {
 	border-top-left-radius: var(--main-border-radius);
 	border-bottom-left-radius: var(--main-border-radius);
 }
-table tbody tr td:last-child {
+.captures table tbody tr td:last-child {
 	border-top-right-radius: var(--main-border-radius);
 	border-bottom-right-radius: var(--main-border-radius);
 }
 
-table tbody tr:not(:hover):nth-child(even) {
+.captures table tbody tr:not(:hover):nth-child(even) {
 	background: hsl(0deg 0% 15%);
 }
 
-table tbody tr:hover {
+.captures table tbody tr:hover {
 	background-color: var(--selection-colour);
 }
-table tbody tr:hover td {
+.captures table tbody tr:hover td {
 	border-top-color: var(--selection-colour-outline);
 	border-bottom-color: var(--selection-colour-outline);
 }
-table tbody tr:hover td:first-child {
+.captures table tbody tr:hover td:first-child {
 	border-left-color: var(--selection-colour-outline);
 }
-table tbody tr:hover td:last-child {
+.captures table tbody tr:hover td:last-child {
 	border-right-color: var(--selection-colour-outline);
 }
 
-td.download {
+.captures td.download {
 	text-align: right;
+}
+
+.captures td.download .icon {
+	width: 20px;
+	height: 20px;
+	filter: brightness(94%);  /* Assumes svg is white */
+}
+
+.captures td > .motion-graph {
+	display: block;
+    height: 20px;
+    max-width: 600px;
+}
+
+
+/********************************/
+/*  Play page                   */
+/********************************/
+
+.play .back {
+	margin-top: 8px;
+	padding: 12px;
+}
+
+.play .back > a:visited {
+	color: inherit;
+}
+
+.play > .motion-graph {
+	display: block;
+    height: 20px;
+    max-width: 600px;
 }

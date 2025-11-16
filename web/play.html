@@ -10,11 +10,13 @@
 	<a class="tab" href="{{ url_for('live') }}">Live</a>
 	<a class="tab active" href="{{ url_for('captures') }}">Captures</a>
 </div>
-<div class="content-container">
+<div class="content-container play">
 	<video controls autoplay style="max-width:100%">
 		<source src="{{ url_for('download_capture', name=name) }}" type="video/mp4">
 		Your browser does not support the video tag.
 	</video>
+	<img class="motion-graph" src="{{ url_for('graph_image', name=name, graph_type='motion') }}" alt="Motion graph">
+	<img class="sad-graph" src="{{ url_for('graph_image', name=name, graph_type='sad') }}" alt="S.A.D graph">
 	<div class="back"><a href="{{ url_for('captures') }}">&lt; Back</a></div>
 </div>
 </body>

@@ -2,3 +2,4 @@ picamerax[array]
 numpy
 omegaconf
 flask
+Pillow

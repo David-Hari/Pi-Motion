@@ -10,7 +10,7 @@
 	<a class="tab" href="{{ url_for('live') }}">Live</a>
 	<a class="tab active" href="">Captures</a>
 </div>
-<div class="content-container">
+<div class="content-container captures">
 	<p>Recorded events</p>
 	<table>
 		<thead>
@@ -19,6 +19,7 @@
 			<th>Length</th>
 			<th>Max motion</th>
 			<th>Max <abbr title="Sum of absolute differences">S.A.D</abbr></th>
+			<th>Motion graph</th>
 			<th></th>
 		</tr>
 		</thead>
@@ -29,9 +30,12 @@
 			<td>{{ item.length }}</td>
 			<td>{{ item.max_motion }}</td>
 			<td>{{ item.max_sad }}</td>
+			<td>
+				<img class="motion-graph" src="{{ url_for('graph_image', name=item.name, graph_type='motion') }}" alt="Motion graph">
+			</td>
 			<td class="download">
 				<a href="{{ url_for('download_capture', name=item.name) }}" download>
-					<img class="icon" src="{{ url_for('static', filename='download.svg') }}" alt="download">
+					<img src="{{ url_for('static', filename='download.svg') }}" alt="download">
 				</a>
 			</td>
 		</tr>

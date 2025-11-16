@@ -1,7 +1,7 @@
 import io
 import threading
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import flask
 from flask import Flask, Response, url_for
@@ -17,6 +17,7 @@ def create(camera, video_dir: Path):
 
 	web_dir = str(Path(__file__).parent / 'web')
 	app = Flask(__name__, static_folder=web_dir, template_folder=web_dir)
+	app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)  # Since images will never change
 
 	def mjpeg_generator():
 		"""Helper to produce MJPEG frames from the camera."""
@@ -72,15 +73,13 @@ def create(camera, video_dir: Path):
 		if video_dir.exists():
 			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
 				json_path = path.with_suffix('.json')
-				info = CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else CaptureInfo(path.stem, 0, 0, 0, 0)
+				info = CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else None
 				items.append({
-					'name': info.name,
-					'timestamp': format_time(info.timestamp_utc),
-					'length': format_seconds(info.length_seconds),
-					'max_motion': int(info.max_motion),
-					'max_sad': info.max_sad,
-					'motion_img': str(path.with_name(f'{path.stem}-motion.png').absolute()),
-					'sad_img': str(path.with_name(f'{path.stem}-sad.png').absolute())
+					'name': info.name if info else path.stem,
+					'timestamp': format_time(info.timestamp_utc) if info else path.stem,  # Assuming file name is timestamp
+					'length': format_seconds(info.length_seconds) if info else '--',
+					'max_motion': int(info.max_motion) if info else '--',
+					'max_sad': info.max_sad if info else '--'
 				})
 		return flask.render_template('captures.html', items=items)
 
@@ -95,6 +94,11 @@ def create(camera, video_dir: Path):
 	def play_capture(name):
 		"""Play the selected file"""
 		return flask.render_template('play.html', name=name)
+
+	@app.route('/captures/graphs/<name>/<graph_type>')
+	def graph_image(name, graph_type):
+		"""Return the graph image for the given name"""
+		return flask.send_from_directory(video_dir, f'{name}-{graph_type}.png')
 
 	return app
 
