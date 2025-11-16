@@ -148,11 +148,11 @@ class MotionRecorder(threading.Thread):
 						motion_stats = self.convert_frame_times(self.motion.stop_capturing_and_get_stats())
 						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
 						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
+						print('Finished writing video file')
 						self.captures.put(
 							(CaptureInfo(name, start_time, end_time - start_time, max_motion, max_sad),
 							 motion_stats)
 						)
-					print('Finished writing video file')
 				except picamera.PiCameraError as e:
 					print('Could not save recording: ' + e)
 					pass
