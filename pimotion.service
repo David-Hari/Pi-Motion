@@ -4,11 +4,14 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=python /home/pi/Pi-Motion/main.py
+WorkingDirectory=/home/pi/Pi-Motion
+ExecStart=python -u /home/pi/Pi-Motion/main.py
 User=pi
 Restart=on-failure
-StandardOutput=journal
-StandardError=journal
+TimeoutStopSec=120
+
+# Send SIGINT instead of the default SIGTERM, as SIGINT is interpreted by Python as KeyboardInterrupt
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target
