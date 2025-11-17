@@ -7,7 +7,8 @@ from omegaconf import OmegaConf
 import flask
 from flask import Flask, Response, url_for
 
-from MotionRecorder import CaptureInfo
+from MotionRecorder import read_capture_info
+from Grapher import Grapher
 
 
 def create(camera, config: OmegaConf):
@@ -16,10 +17,10 @@ def create(camera, config: OmegaConf):
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
 	video_dir = Path(config.final_dir)
+	grapher = Grapher(config)
 
 	web_dir = str(Path(__file__).parent / 'web')
 	app = Flask(__name__, static_folder=web_dir, template_folder=web_dir)
-	app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)  # Since images will never change
 
 	def mjpeg_generator():
 		"""Helper to produce MJPEG frames from the camera."""
@@ -74,13 +75,12 @@ def create(camera, config: OmegaConf):
 		items = []
 		if video_dir.exists():
 			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
-				json_path = path.with_suffix('.json')
-				info = CaptureInfo.from_json(json_path.read_text()) if json_path.exists() else None
+				info = read_capture_info(path.with_suffix('.json'))
 				items.append({
 					'name': info.name if info else path.stem,
-					'timestamp': format_time(info.timestamp_utc) if info else path.stem,  # Assuming file name is timestamp
+					'timestamp': format_time(info.start_time) if info else path.stem,  # Assuming file name is timestamp
 					'length': format_seconds(info.length_seconds) if info else '--',
-					'max_motion': int(info.max_motion) if info else '--',
+					'max_motion': info.max_motion if info else '--',
 					'max_sad': info.max_sad if info else '--'
 				})
 		return flask.render_template('captures.html', items=items)
@@ -100,13 +100,24 @@ def create(camera, config: OmegaConf):
 	@app.route('/captures/graphs/<name>/<graph_type>')
 	def graph_image(name, graph_type):
 		"""Return the graph image for the given name"""
-		return flask.send_from_directory(video_dir, f'{name}-{graph_type}.png')
+		path = None
+		if graph_type == 'motion':
+			path = grapher.get_motion_image(name)
+		elif graph_type == 'sad':
+			path = grapher.get_sad_image(name)
+		else:
+			flask.abort(400, f'Unknown graph type {graph_type}')
+
+		if path is not None and path.exists():
+			return flask.send_file(path)
+		else:
+			flask.abort(404, f'Could not find "{graph_type}" graph image for {name}')
 
 	return app
 
 
 def format_time(t):
-	return datetime.fromtimestamp(t, tz=timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
+	return datetime.fromtimestamp(t / 1000000, tz=timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
 
 def format_seconds(s):
 	return f'{int(s/60):0d}m:{int(s%60):02d}s'

@@ -5,37 +5,14 @@ import queue
 import threading
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, asdict
-import json
 from pathlib import Path
-from typing import List
-
+import json
+import struct
+from typing import List, Union
 import picamerax as picamera
 from omegaconf import OmegaConf
 
 from MotionVectorReader import MotionVectorReader, FrameStats as MVFrameStats
-
-
-@dataclass
-class FrameStats:
-	timestamp_utc: float
-	motion_sum: float
-	sad_sum: int
-
-
-@dataclass
-class CaptureInfo:
-	name: str
-	timestamp_utc: float
-	length_seconds: float
-	max_motion: float
-	max_sad: int
-
-	@classmethod
-	def from_json(cls, s: str):
-		return cls(**json.loads(s))
-
-	def to_json(self) -> str:
-		return json.dumps(asdict(self))
 
 
 class MotionRecorder(threading.Thread):
@@ -60,11 +37,12 @@ class MotionRecorder(threading.Thread):
 		self.output_dir = Path(config.staging_dir)
 		self.captures = queue.Queue()
 
-		# Get time since boot. This is needed as the camera timestamps are relative to this.
+		# With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot.
+		# Get boot time here to calculate absolute time of recording.
 		with open('/proc/uptime') as f:
 			uptime_seconds = float(f.read().split()[0])
 		now = datetime.now(timezone.utc)
-		self.boot_timestamp_utc = (now - timedelta(seconds=uptime_seconds)).timestamp()
+		self.boot_timestamp = int((now - timedelta(seconds=uptime_seconds)).timestamp() * 1000000) # Microseconds, UTC
 
 
 	def __enter__(self):
@@ -80,8 +58,10 @@ class MotionRecorder(threading.Thread):
 
 
 	def wait(self, timeout=0.0):
-		"""Use this instead of time.sleep() from sub-threads so that they would wake up to exit quickly
-		when instance is being shut down."""
+		"""
+		Use this instead of time.sleep() from sub-threads so that they would wake up to exit quickly
+		when instance is being shut down.
+		"""
 		try:
 			self.camera.wait_recording(timeout)
 		except picamera.exc.PiCameraNotRecording:
@@ -90,9 +70,10 @@ class MotionRecorder(threading.Thread):
 
 
 	def start_camera(self):
-		"""Sets up PiCamera to record H.264 High/4.1 profile video with enough
-		intra frames that there is at least one in the in-memory circular buffer when
-		motion is detected."""
+		"""
+		Sets up PiCamera to record H.264 High/4.1 profile video with enough intra frames that there is
+		at least one in the in-memory circular buffer when motion is detected.
+		"""
 		print('Starting camera')
 		camera_settings = self.config.camera
 		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
@@ -125,14 +106,14 @@ class MotionRecorder(threading.Thread):
 		while self.camera.recording:
 			if self.motion.wait(self.seconds_pre):
 				try:
-					start_time = self.camera_time_to_unix_time(self.camera.timestamp) - self.seconds_pre
+					start_time = self.boot_timestamp + self.camera.timestamp - self.seconds_pre
 					self.motion.clear_trigger()
 					self.motion.start_capturing_statistics()
 
 					# Start a new video, then append circular buffer to it until motion ends
-					print('Started writing video file')
 					name = time.strftime(self.file_pattern)
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
+						print('Started writing video file')
 						self.append_buffer(output, header=True)
 						last_motion_time = time.monotonic()
 						while self.camera.recording:
@@ -144,13 +125,13 @@ class MotionRecorder(threading.Thread):
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								#TODO: Also have a max recording time. If it goes over that, stop it
 								break
-						end_time = self.camera_time_to_unix_time(self.camera.timestamp)
+						end_time = self.boot_timestamp + self.camera.timestamp
 						motion_stats = self.convert_frame_times(self.motion.stop_capturing_and_get_stats())
 						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
 						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
 						print('Finished writing video file')
 						self.captures.put(
-							(CaptureInfo(name, start_time, end_time - start_time, max_motion, max_sad),
+							(CaptureInfo(name, start_time, (end_time - start_time) / 1000000, max_motion, max_sad),
 							 motion_stats)
 						)
 				except picamera.PiCameraError as e:
@@ -161,7 +142,7 @@ class MotionRecorder(threading.Thread):
 
 
 	def append_buffer(self, output, header=False):
-		"""Flush contents of circular framebuffer to current on-disk recording."""
+		""" Flush contents of circular framebuffer to current on-disk recording. """
 		s = self.stream
 		with s.lock:
 			s.copy_to(output, seconds=self.seconds_pre, first_frame=picamera.PiVideoFrameType.sps_header if header else None)
@@ -170,21 +151,79 @@ class MotionRecorder(threading.Thread):
 
 
 	def annotate_with_datetime(self, camera):
-		"""Background thread for annotating date and time to video."""
+		""" Background thread for annotating date and time to video. """
 		while camera.recording:
 			camera.annotate_text = time.strftime(self.label_pattern)
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
 
 
-	def camera_time_to_unix_time(self, t: float):
-		"""
-		With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot.
-		Return the time in seconds since the epoch as a floating point number.
-		"""
-		return self.boot_timestamp_utc + (t / 1000000)
-
 	def convert_frame_times(self, frame_stats: List[MVFrameStats]):
+		""" Convert timestamps in each frame to be relative microseconds since UNIX epoch. """
 		return [
-			FrameStats(self.camera_time_to_unix_time(fs.timestamp), fs.motion_sum, fs.sad_sum)
+			FrameStats(self.boot_timestamp + fs.timestamp, fs.motion_sum, fs.sad_sum)
 			for fs in frame_stats
 		]
+
+
+@dataclass
+class FrameStats:
+	frame_time: int   # Microseconds, relative to start_time
+	motion_sum: int
+	sad_sum: int
+
+	@classmethod
+	def from_stream(cls, s):
+		data = s.read(16)
+		if not data:
+			return None
+		ft, ms, ss = struct.unpack('<QII', data)
+		return cls(ft, ms, ss)
+
+	def to_stream(self, s):
+		s.write(struct.pack('<QII', self.frame_time, self.motion_sum, self.sad_sum))
+
+
+@dataclass
+class CaptureInfo:
+	name: str
+	start_time: int   # Microseconds, UTC
+	length_seconds: float
+	max_motion: int
+	max_sad: int
+
+	@classmethod
+	def from_json(cls, s: str):
+		return cls(**json.loads(s))
+
+	def to_json(self) -> str:
+		return json.dumps(asdict(self))
+
+
+def write_capture_info(output_dir: Path, name: str, capture_info: CaptureInfo):
+	json_path = output_dir.joinpath(f'{name}.json')
+	json_path.write_text(capture_info.to_json(), encoding='utf_8')
+
+
+def read_capture_info(file_path: Path) -> Union[CaptureInfo, None]:
+	return CaptureInfo.from_json(file_path.read_text()) if file_path.exists() else None
+
+
+def write_motion_stats(output_dir: Path, name: str, motion_stats: List[FrameStats]):
+	file_path = output_dir.joinpath(f'{name}.bin')
+	with open(file_path, 'wb') as f:
+		f.write(struct.pack('<I', len(motion_stats)))
+		for stat in motion_stats:
+			stat.to_stream(f)
+
+
+def read_motion_stats(file_path: Path) -> List[FrameStats]:
+	items = []
+	with open(file_path, 'rb') as f:
+		count = struct.unpack('<I', f.read(4))[0]
+		for _ in range(count):
+			fs = FrameStats.from_stream(f)
+			if fs is None:
+				print(f'Unexpected end of file when reading motion data from {file_path.absolute()}')
+				break
+			items.append(fs)
+	return items

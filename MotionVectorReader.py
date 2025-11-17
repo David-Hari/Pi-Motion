@@ -9,8 +9,8 @@ import numpy as np
 
 @dataclass
 class FrameStats:
-	timestamp: int
-	motion_sum: float
+	timestamp: int  # Microseconds since system boot
+	motion_sum: int
 	sad_sum: int
 
 
@@ -78,8 +78,8 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 			np.square(data['y'].astype(np.float))
 		)
 
-		direction_sum = direction.sum().item()
-		sad_sum = data['sad'].sum().item()
+		direction_sum = int(direction.sum().item())
+		sad_sum = int(data['sad'].sum().item())
 
 		with self.stats_lock:
 			stats = FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum)
