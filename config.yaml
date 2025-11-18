@@ -5,9 +5,9 @@ camera:
   sensor_mode: 4
   width: 1296
   height: 972
-  frame_rate: 15
-  bit_rate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
-  hflip: True        # Because camera is mounted upside down
+  framerate: 15
+  bitrate: 2000000  # 2Mbps is a high quality stream for 10 fps HD video
+  hflip: True       # Because camera is mounted upside down
   vflip: True
 
 staging_dir: "./output"    # Seems to be faster to write to SD card

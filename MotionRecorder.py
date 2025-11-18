@@ -35,7 +35,7 @@ class MotionRecorder(threading.Thread):
 		self.motion_threshold = config.motion_threshold     # Sum of all motion vectors should exceed this value
 		self.file_pattern = '%Y-%m-%dT%H-%M-%S'  # Date pattern for saved recordings
 		self.label_pattern = '%Y-%m-%d %H:%M'    # Date pattern for annotation text
-		self.output_dir = Path(config.staging_dir)
+		self.output_dir = config.staging_dir
 		self.captures = queue.Queue()
 
 		# With clock_mode='raw' (see `start_camera`), timestamp is microseconds since system boot.
@@ -78,15 +78,15 @@ class MotionRecorder(threading.Thread):
 		print('Starting camera')
 		camera_settings = self.config.camera
 		self.camera = PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
-		                       resolution=(self.width, self.height), framerate=camera_settings.frame_rate)
-		self.stream = PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bit_rate)
-		self.motion = MotionVectorReader(self.camera, pre_frames=self.seconds_pre * camera_settings.frame_rate,
+		                       resolution=(self.width, self.height), framerate=camera_settings.framerate)
+		self.stream = PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bitrate)
+		self.motion = MotionVectorReader(self.camera, pre_frames=self.seconds_pre * camera_settings.framerate,
 		                                 motion_threshold=self.motion_threshold)
 		self.camera.start_recording(self.stream, motion_output=self.motion,
-		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bit_rate,
-		                            intra_period=self.seconds_pre * camera_settings.frame_rate // 2)
+		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bitrate,
+		                            intra_period=self.seconds_pre * camera_settings.framerate // 2)
 
-		#TODO: Iterate over allowed_camera_settings and read these values from config dict
+		#TODO: Iterate over camera_settings dict and set the values that exist
 		self.camera.annotate_text_size = 15
 		self.camera.hflip = camera_settings.hflip
 		self.camera.vflip = camera_settings.vflip

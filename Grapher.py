@@ -9,7 +9,7 @@ from MotionRecorder import read_motion_stats
 class Grapher:
 	def __init__(self, config: OmegaConf):
 		self.image_height = 4
-		self.output_dir = Path(config.final_dir)
+		self.output_dir = config.final_dir
 		self.motion_threshold = config.motion_threshold
 		self.motion_upper_bound = config.motion_upper_bound
 		self.scale_boost = config.scale_boost
