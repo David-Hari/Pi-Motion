@@ -9,7 +9,8 @@ from pathlib import Path
 import json
 import struct
 from typing import List, Union
-import picamerax as picamera
+from picamerax import PiCamera, PiCameraCircularIO, PiCameraError, PiVideoFrameType
+from picamerax.exc import PiCameraNotRecording
 from omegaconf import OmegaConf
 
 from MotionVectorReader import MotionVectorReader, FrameStats as MVFrameStats
@@ -64,7 +65,7 @@ class MotionRecorder(threading.Thread):
 		"""
 		try:
 			self.camera.wait_recording(timeout)
-		except picamera.exc.PiCameraNotRecording:
+		except PiCameraNotRecording:
 			# that's fine, return immediately
 			pass
 
@@ -76,9 +77,9 @@ class MotionRecorder(threading.Thread):
 		"""
 		print('Starting camera')
 		camera_settings = self.config.camera
-		self.camera = picamera.PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
-		                                resolution=(self.width, self.height), framerate=camera_settings.frame_rate)
-		self.stream = picamera.PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bit_rate)
+		self.camera = PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
+		                       resolution=(self.width, self.height), framerate=camera_settings.frame_rate)
+		self.stream = PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bit_rate)
 		self.motion = MotionVectorReader(self.camera, pre_frames=self.seconds_pre * camera_settings.frame_rate,
 		                                 motion_threshold=self.motion_threshold)
 		self.camera.start_recording(self.stream, motion_output=self.motion,
@@ -134,7 +135,7 @@ class MotionRecorder(threading.Thread):
 							(CaptureInfo(name, start_time, (end_time - start_time) / 1000000, max_motion, max_sad),
 							 motion_stats)
 						)
-				except picamera.PiCameraError as e:
+				except PiCameraError as e:
 					print('Could not save recording: ' + e)
 					pass
 				# Wait for the circular buffer to fill up before looping again
@@ -145,7 +146,7 @@ class MotionRecorder(threading.Thread):
 		""" Flush contents of circular framebuffer to current on-disk recording. """
 		s = self.stream
 		with s.lock:
-			s.copy_to(output, seconds=self.seconds_pre, first_frame=picamera.PiVideoFrameType.sps_header if header else None)
+			s.copy_to(output, seconds=self.seconds_pre, first_frame=PiVideoFrameType.sps_header if header else None)
 			s.clear()
 		return output
 
