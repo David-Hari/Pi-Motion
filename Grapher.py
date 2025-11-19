@@ -19,31 +19,19 @@ class Grapher:
 
 		# Start at black then transition through blue until the threshold where it goes
 		# to yellow then slowly up to red at the maximum.
+		gradient_colours = [ (0, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 0) ]
+
 		below_threshold = self.scale(self.per_block_threshold * 0.9, 0, self.per_block_upper_bound)
 		threshold = self.scale(self.per_block_threshold, 0, self.per_block_upper_bound)
-		self.max_motion_gradient = make_gradient([
-			(0.0, (0, 0, 0)),
-			(below_threshold, (0, 0, 255)),
-			(threshold, (255, 255, 0)),
-			(1.0, (255, 0, 0))
-		])
+		self.max_motion_gradient = make_gradient([ 0.0, below_threshold, threshold, 1.0 ], gradient_colours)
 
 		below_threshold = self.scale(self.per_frame_threshold * 0.9, 0, self.per_frame_upper_bound)
 		threshold = self.scale(self.per_frame_threshold, 0, self.per_frame_upper_bound)
-		self.motion_sum_gradient = make_gradient([
-			(0.0, (0, 0, 0)),
-			(below_threshold, (0, 0, 255)),
-			(threshold, (255, 255, 0)),
-			(1.0, (255, 0, 0))
-		])
+		self.motion_sum_gradient = make_gradient([ 0.0, below_threshold, threshold, 1.0 ], gradient_colours)
 
-		# Similar to above but there is no threshold
-		self.sad_gradient = make_gradient([
-			(0.0, (0, 0, 0)),
-			(0.3, (0, 0, 255)),
-			(0.4, (255, 255, 0)),
-			(1.0, (255, 0, 0))
-		])
+		# S.A.D is scaled dynamically based on max value per video, so instead of a threshold with transitioning
+		# colours, just go from one colour to another.
+		self.sad_gradient = make_gradient([ 0.0, 1.0 ], [ (0, 0, 0), (255, 255, 0) ])
 
 
 	def make_image(self, file_path: Path, gradient, data_list, lower_bound, upper_bound):
@@ -74,14 +62,16 @@ class Grapher:
 
 
 	def get_sad_sum_image(self, name) -> Path:
-		# Note: SAD value is normally a number much larger than 0, but occasionally it is 0.
-		# Ignore these values so that it doesn't affect the graph scaling.
 		image_path = self.output_dir.joinpath(f'{name}-sad-sum.png')
 		stats = self.read_stats_if_needed(image_path, name)
 		if stats is not None:
 			sad_list = [each.sad_sum for each in stats]
-			nonzero = [x for x in sad_list if x > 0]
-			self.make_image(image_path, self.sad_gradient, sad_list, min(nonzero), max(sad_list))
+			# Note: SAD value is normally a number much larger than 0, but occasionally it is 0.
+			# So that it doesn't affect the graph scaling, change any small values to be equal to a neighbouring value.
+			for i in range(1, len(sad_list)):
+				if sad_list[i] < 10:
+					sad_list[i] = sad_list[i-1]
+			self.make_image(image_path, self.sad_gradient, sad_list, min(sad_list), max(sad_list))
 		return image_path
 
 
@@ -100,17 +90,18 @@ class Grapher:
 		return math.log1p(scaled * self.scale_boost) / math.log1p(self.scale_boost)
 
 
-def make_gradient(stops):
+def make_gradient(stops, colours):
 	"""
-	stops: list of (position, (r,g,b)). position must be 0..1
+	stops: list of positions, must be 0..1
+	colours: list of (r,g,b), must be same length as stops
 	"""
-	stops = sorted(stops, key=lambda s: s[0])
-
 	def gradient(t):
 		t = max(0.0, min(1.0, t))
 		for i in range(1, len(stops)):
-			p0, c0 = stops[i-1]
-			p1, c1 = stops[i]
+			p0 = stops[i-1]
+			c0 = colours[i-1]
+			p1 = stops[i]
+			c1 = colours[i]
 			if t <= p1:
 				f = (t - p0) / (p1 - p0) if p1 > p0 else 0
 				return (
@@ -118,6 +109,6 @@ def make_gradient(stops):
 					int(c0[1] + (c1[1] - c0[1]) * f),
 					int(c0[2] + (c1[2] - c0[2]) * f)
 				)
-		return stops[-1][1]
+		return colours[0]
 
 	return gradient
