@@ -31,7 +31,7 @@
 			<td>{{ item.max_motion }}</td>
 			<td>{{ item.max_sad }}</td>
 			<td>
-				<img class="motion-graph" src="{{ url_for('motion_sum_graph', name=item.name) }}" alt="Graph of the sum of motion vectors in each frame">
+				<img class="motion-graph" src="{{ url_for('motion_sum_graph', name=item.name) }}" title="Graph of the sum of motion vectors in each frame">
 			</td>
 			<td class="download">
 				<a href="{{ url_for('download_capture', name=item.name) }}" download>

@@ -16,9 +16,9 @@
 			<source src="{{ url_for('download_capture', name=name) }}" type="video/mp4">
 			Your browser does not support the video tag.
 		</video>
-		<img class="motion-graph" src="{{ url_for('max_motion_graph', name=name) }}" alt="Graph of largest motion per block in each frame">
-		<img class="motion-graph" src="{{ url_for('motion_sum_graph', name=name) }}" alt="Graph of the sum of motion vectors in each frame">
-		<img class="sad-graph" src="{{ url_for('sad_sum_graph', name=name) }}" alt="Graph of the sum of S.A.D values per frame">
+		<img class="motion-graph" src="{{ url_for('max_motion_graph', name=name) }}" title="Graph of largest motion per block in each frame">
+		<img class="motion-graph" src="{{ url_for('motion_sum_graph', name=name) }}" title="Graph of the sum of motion vectors in each frame">
+		<img class="sad-graph" src="{{ url_for('sad_sum_graph', name=name) }}" title="Graph of the sum of S.A.D values per frame">
 	</div>
 	<div class="back"><a href="{{ url_for('captures') }}">&lt; Back</a></div>
 </div>
