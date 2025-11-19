@@ -88,7 +88,7 @@ class MotionRecorder(threading.Thread):
 		self.camera.vflip = camera_settings.vflip
 
 		print('Waiting for camera to warm up...')
-		self.camera.wait_recording(1)  # Give camera some time to start up
+		self.camera.wait_recording(2)  # Give camera some time to start up
 		self.motion.clear_trigger()    # then clear the triggered.
 		self.motion.clear_statistics()
 
