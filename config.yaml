@@ -13,7 +13,7 @@ camera:
 staging_dir: "./output"    # Seems to be faster to write to SD card
 final_dir: "/media/videos" # But USB stick has more space
 
-seconds_pre: 10
+seconds_pre: 20
 seconds_post: 60
 
 per_block_threshold: 50    # Motion vector for a single block in a frame must exceed this value
