@@ -1,8 +1,11 @@
 
-* Auto-reload config when file is changed. Things will be notified with old and new config.
-* Re-generate (delete) images if it detects change to image settings.
 
 * Always show video controls, and below the video not with a big black gradient over it
 * Then it can be aligned to motion graph
+
+
+* Auto-reload config when file is changed. Things will be notified with old and new config.
+* Re-generate (delete) images if it detects change to image settings.
+
 
 * Put UI controls on live view, have '/controls' (def adjust_camera_controls) endpoint to adjust in real time

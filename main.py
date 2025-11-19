@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from omegaconf import OmegaConf, MISSING
 from typing import Optional
 
-from MotionRecorder import MotionRecorder, write_capture_info, write_motion_stats
+from MotionRecorder import MotionRecorder
+from data import write_frame_stats
 import webserver
 
 
@@ -40,8 +41,11 @@ class AppConfig:
 	final_dir: Path
 	seconds_pre: int = 10
 	seconds_post: int = 60
-	motion_threshold: int = 1500    # Start capture if sum of all motion vectors exceeds this value
-	motion_upper_bound: int = 50000 # This is the maximum we expect the sum to be. Used for graph.
+	per_block_threshold: int = 50   # Motion vector for a single block in a frame must equal or exceed this value
+	num_threshold_blocks: int = 10  # Number of motion vector blocks to have met the `per_block_threshold`
+	per_frame_threshold: int = 1500 # Sum of all motion vectors in a frame must equal or exceed this value
+	per_block_upper_bound: int = 100   # This is the highest we expect the motion vector per block to be. Used for graph scaling.
+	per_frame_upper_bound: int = 50000 # This is the highest we expect the sum of all vectors per frame to be. Used for graph scaling.
 	scale_boost: int = 20           # How much to boost lower values in log-scaled graphs. 5 = mild, 10 = medium, 50 = strong, 100 = very strong
 	web_port: int = 8080
 
@@ -56,7 +60,7 @@ try:
 		while True:
 			capture = recorder.captures.get()
 			capture_info = capture[0]
-			motion_stats = capture[1]
+			frame_stats = capture[1]
 			print(f'Motion capture in "{capture_info.name}"')
 
 			# Convert file
@@ -68,8 +72,8 @@ try:
 			except Exception as e:
 				print(f'Failed to convert video. {e}')
 
-			write_capture_info(config.final_dir, capture_info.name, capture_info)
-			write_motion_stats(config.final_dir, capture_info.name, motion_stats)
+			capture_info.write_to_file(config.final_dir)
+			write_frame_stats(config.final_dir, capture_info.name, frame_stats)
 
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):

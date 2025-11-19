@@ -5,13 +5,9 @@ from dataclasses import dataclass
 import picamerax as picamera
 import picamerax.array
 import numpy as np
+from omegaconf import OmegaConf
 
-
-@dataclass
-class FrameStats:
-	timestamp: int  # Microseconds since system boot
-	motion_sum: int
-	sad_sum: int
+from data import FrameStats
 
 
 class MotionVectorReader(picamera.array.PiMotionAnalysis):
@@ -21,11 +17,14 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	Numpy is fast enough for that.
 	"""
 
-	def __init__(self, camera, pre_frames, motion_threshold):
+	def __init__(self, camera, boot_timestamp, pre_frames, config: OmegaConf):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
-		self.motion_threshold = motion_threshold
+		self.boot_timestamp = boot_timestamp   # Needed to calculate absolute time of each frame
+		self.per_block_threshold = config.per_block_threshold
+		self.num_threshold_blocks = config.num_threshold_blocks
+		self.per_frame_threshold = config.per_frame_threshold
 		self.trigger = threading.Event()
 		self.pre_record_statistics = deque(maxlen=pre_frames)
 		self.statistics = []
@@ -67,9 +66,10 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 	# from profilehooks import profile
 	# @profile
 	def analyze(self, data):
-		"""Runs once per frame on a 16x16 motion vector block buffer (about 5000 values).
+		"""
+		Runs once per frame on a 16x16 motion vector block buffer (about 5000 values).
 		Must be faster than frame rate (e.g. max 100 ms for 10 fps stream).
-		Sets `self.trigger` Event to trigger capture.
+		Sets `self.trigger` event to trigger capture.
 		"""
 
 		# Get direction vector
@@ -78,15 +78,18 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 			np.square(data['y'].astype(np.float))
 		)
 
-		direction_sum = int(direction.sum().item())
-		sad_sum = int(data['sad'].sum().item())
+		max_direction = int(direction.max())
+		num_over_threshold = (direction > self.per_block_threshold).sum()
+		direction_sum = int(direction.sum())
+		sad_sum = int(data['sad'].sum())
 
 		with self.stats_lock:
-			stats = FrameStats(self.camera.frame.timestamp, direction_sum, sad_sum)
+			stats = FrameStats(self.boot_timestamp + self.camera.frame.timestamp,
+			                   max_direction, direction_sum, sad_sum)
 			if self.is_recording:
 				self.statistics.append(stats)
 			else:
 				self.pre_record_statistics.append(stats)
 
-		if direction_sum > self.motion_threshold:
+		if num_over_threshold > self.num_threshold_blocks or direction_sum > self.per_frame_threshold:
 			self.trigger.set()

@@ -1,24 +1,36 @@
 import math
 from pathlib import Path
+from typing import Union
 from omegaconf import OmegaConf
 from PIL import Image, ImageDraw
 
-from MotionRecorder import read_motion_stats
+from data import read_frame_stats, FrameStats
 
 
 class Grapher:
 	def __init__(self, config: OmegaConf):
 		self.image_height = 4
 		self.output_dir = config.final_dir
-		self.motion_threshold = config.motion_threshold
-		self.motion_upper_bound = config.motion_upper_bound
+		self.per_block_threshold = config.per_block_threshold
+		self.per_frame_threshold = config.per_frame_threshold
+		self.per_block_upper_bound = config.per_block_upper_bound
+		self.per_frame_upper_bound = config.per_frame_upper_bound
 		self.scale_boost = config.scale_boost
 
-		# Start at black then transition through blue until `motion_threshold` where it goes
+		# Start at black then transition through blue until the threshold where it goes
 		# to yellow then slowly up to red at the maximum.
-		below_threshold = self.scale(self.motion_threshold * 0.9, 0, self.motion_upper_bound)
-		threshold = self.scale(self.motion_threshold, 0, self.motion_upper_bound)
-		self.motion_gradient = make_gradient([
+		below_threshold = self.scale(self.per_block_threshold * 0.9, 0, self.per_block_upper_bound)
+		threshold = self.scale(self.per_block_threshold, 0, self.per_block_upper_bound)
+		self.max_motion_gradient = make_gradient([
+			(0.0, (0, 0, 0)),
+			(below_threshold, (0, 0, 255)),
+			(threshold, (255, 255, 0)),
+			(1.0, (255, 0, 0))
+		])
+
+		below_threshold = self.scale(self.per_frame_threshold * 0.9, 0, self.per_frame_upper_bound)
+		threshold = self.scale(self.per_frame_threshold, 0, self.per_frame_upper_bound)
+		self.motion_sum_gradient = make_gradient([
 			(0.0, (0, 0, 0)),
 			(below_threshold, (0, 0, 255)),
 			(threshold, (255, 255, 0)),
@@ -43,27 +55,44 @@ class Grapher:
 		image.save(file_path)
 
 
-	def get_motion_image(self, name) -> Path:
-		image_path = self.output_dir.joinpath(f'{name}-motion.png')
-		bin_path = self.output_dir.joinpath(f'{name}.bin')
-		if not image_path.exists() and bin_path.exists():
-			motion_stats = read_motion_stats(bin_path)
-			motion_list = [each.motion_sum for each in motion_stats]
-			self.make_image(image_path, self.motion_gradient, motion_list, 0, self.motion_upper_bound)
+	def get_max_motion_image(self, name) -> Path:
+		image_path = self.output_dir.joinpath(f'{name}-max-motion.png')
+		stats = self.read_stats_if_needed(image_path, name)
+		if stats is not None:
+			motion_list = [each.max_motion for each in stats]
+			self.make_image(image_path, self.max_motion_gradient, motion_list, 0, self.per_block_upper_bound)
 		return image_path
 
 
-	def get_sad_image(self, name) -> Path:
+	def get_motion_sum_image(self, name) -> Path:
+		image_path = self.output_dir.joinpath(f'{name}-motion-sum.png')
+		stats = self.read_stats_if_needed(image_path, name)
+		if stats is not None:
+			motion_list = [each.motion_sum for each in stats]
+			self.make_image(image_path, self.motion_sum_gradient, motion_list, 0, self.per_frame_upper_bound)
+		return image_path
+
+
+	def get_sad_sum_image(self, name) -> Path:
 		# Note: SAD value is normally a number much larger than 0, but occasionally it is 0.
 		# Ignore these values so that it doesn't affect the graph scaling.
-		image_path = self.output_dir.joinpath(f'{name}-sad.png')
-		bin_path = self.output_dir.joinpath(f'{name}.bin')
-		if not image_path.exists() and bin_path.exists():
-			motion_stats = read_motion_stats(bin_path)
-			sad_list = [each.sad_sum for each in motion_stats]
+		image_path = self.output_dir.joinpath(f'{name}-sad-sum.png')
+		stats = self.read_stats_if_needed(image_path, name)
+		if stats is not None:
+			sad_list = [each.sad_sum for each in stats]
 			nonzero = [x for x in sad_list if x > 0]
 			self.make_image(image_path, self.sad_gradient, sad_list, min(nonzero), max(sad_list))
 		return image_path
+
+
+	def read_stats_if_needed(self, image_path: Path, name: str) -> Union[list[FrameStats], None]:
+		if image_path.exists():
+			return None
+		bin_path = self.output_dir.joinpath(f'{name}.bin')
+		if not bin_path.exists():
+			print(f'Could not read motion data for {name}. The file {bin_path} does not exist.')
+			return None
+		return read_frame_stats(bin_path)
 
 
 	def scale(self, value, lower_bound, upper_bound):

@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 import flask
 from flask import Flask, Response, url_for
 
-from MotionRecorder import read_capture_info
+from data import CaptureInfo
 from Grapher import Grapher
 
 
@@ -75,7 +75,7 @@ def create(camera, config: OmegaConf):
 		items = []
 		if video_dir.exists():
 			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
-				info = read_capture_info(path.with_suffix('.json'))
+				info = CaptureInfo.read_from_file(path.with_suffix('.json'))
 				items.append({
 					'name': info.name if info else path.stem,
 					'timestamp': format_time(info.start_time) if info else path.stem,  # Assuming file name is timestamp
@@ -97,21 +97,26 @@ def create(camera, config: OmegaConf):
 		"""Play the selected file"""
 		return flask.render_template('play.html', name=name)
 
-	@app.route('/captures/graphs/<name>/<graph_type>')
-	def graph_image(name, graph_type):
-		"""Return the graph image for the given name"""
-		path = None
-		if graph_type == 'motion':
-			path = grapher.get_motion_image(name)
-		elif graph_type == 'sad':
-			path = grapher.get_sad_image(name)
-		else:
-			flask.abort(400, f'Unknown graph type {graph_type}')
 
+	@app.route('/captures/graphs/<name>/max_motion')
+	def max_motion_graph(name):
+		return send_graph_image(grapher.get_max_motion_image(name))
+
+	@app.route('/captures/graphs/<name>/motion_sum')
+	def motion_sum_graph(name):
+		return send_graph_image(grapher.get_motion_sum_image(name))
+
+	@app.route('/captures/graphs/<name>/sad_sum')
+	def sad_sum_graph(name):
+		return send_graph_image(grapher.get_sad_sum_image(name))
+
+
+	def send_graph_image(path: Path):
 		if path is not None and path.exists():
 			return flask.send_file(path)
 		else:
-			flask.abort(404, f'Could not find "{graph_type}" graph image for {name}')
+			flask.abort(404, f'The file {path} does not exist')
+
 
 	return app
 
