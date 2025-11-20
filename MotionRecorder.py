@@ -103,7 +103,7 @@ class MotionRecorder(threading.Thread):
 		while self.camera.recording:
 			if self.motion.wait(self.seconds_pre):
 				try:
-					start_time = self.boot_timestamp + self.camera.timestamp - self.seconds_pre
+					start_time = self.boot_timestamp + self.camera.timestamp - (self.seconds_pre * 1000000)
 					self.motion.clear_trigger()
 					self.motion.start_capturing_statistics()
 
