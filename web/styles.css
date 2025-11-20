@@ -188,10 +188,11 @@ a.tab:visited {
 	margin: 8px 0;
 	border-radius: 8px;
 	align-items: center;
+	justify-content: center;
 	gap: 12px;
 }
 
-.play-button {
+.video-player .controls button {
 	width: 30px;
 	height: 30px;
 	color: var(--text-colour);
@@ -202,17 +203,18 @@ a.tab:visited {
 	user-select: none;
 }
 
-.play-button:hover {
+.video-player .controls button:hover {
 	border-color: var(--primary-colour-highlight);
 	background: var(--primary-colour);
 }
 
-.play-button:active {
+.video-player .controls button:active {
 	background: hsl(var(--primary-colour-hue) 60% 40%);
 }
 
-.time-text {
+.video-player .time-text {
 	min-width: 90px;
+	margin-left: 12px;
 	text-align: left;
 	font-size: 13px;
 }

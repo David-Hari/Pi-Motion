@@ -1,6 +1,8 @@
 (function(){
 	const video = document.getElementsByTagName('video')[0];
 	const playButton = document.getElementsByClassName('play-button')[0];
+	const prevFrameButton = document.getElementsByClassName('prev-frame-button')[0];
+	const nextFrameButton = document.getElementsByClassName('next-frame-button')[0];
 	const timeText = document.getElementsByClassName('time-text')[0];
 	const progressBar = document.getElementsByClassName('progress-bar')[0];
 	const bufferBar = document.getElementsByClassName('buffer-range')[0];
@@ -56,19 +58,20 @@
 		}
 	}
 
+
+
+	/* Click / drag to seek */
 	function seek(ev){
 		if (!isFinite(video.duration) || video.duration === 0) {
 			return;
 		}
 		const r = progressBar.getBoundingClientRect();
-		const x = Math.max(0, Math.min(r.width, ev.clientX - r.left));
-		video.currentTime = Math.max(0, Math.min(video.duration, (x / r.width) * video.duration));
+		const pos = Math.max(0, Math.min(r.width, ev.clientX - r.left));
+		video.currentTime = Math.max(0, Math.min(video.duration, (pos / r.width) * video.duration));
 		updatePlayed();
 		updateTimeText();
 	}
 
-
-	/* Click / drag to seek */
 	let dragging = false;
 	progressBar.addEventListener('mousedown', function(ev){
 		dragging = true;
@@ -87,13 +90,49 @@
 	});
 
 
-	/* Play/pause toggle */
+	/* Play / pause toggle */
 	playButton.addEventListener('click', function(){
 		if (video.paused || video.ended) {
 			video.play();
 		}
 		else {
 			video.pause();
+		}
+	});
+	
+	document.addEventListener('keydown', function(e){
+		if (e.code === 'Space') {
+			e.preventDefault();
+			playButton.click();
+		}
+	});
+
+
+	/* Previous / next frame */
+	function stepFrame(isForward){
+		if (!isFinite(video.duration) || video.duration === 0) {
+			return;
+		}
+		if (isForward) {
+			pos = video.currentTime + (1.0 / window.videoFrameRate);
+		}
+		else {
+			pos = video.currentTime - (1.0 / window.videoFrameRate);
+		}
+		video.currentTime = Math.max(0, Math.min(video.duration, pos));
+		updatePlayed();
+		updateTimeText();
+	}
+
+	prevFrameButton.addEventListener('click', function(){
+		if (video.paused) {
+			stepFrame(false);
+		}
+	});
+
+	nextFrameButton.addEventListener('click', function(){
+		if (video.paused) {
+			stepFrame(true);
 		}
 	});
 
@@ -133,14 +172,6 @@
 	video.addEventListener('pause', updatePlayButton);
 	video.addEventListener('ended', updatePlayButton);
 
-
-	/* keyboard: space toggles play/pause when focused on controls */
-	document.addEventListener('keydown', function(e){
-		if (e.code === 'Space' && document.activeElement === playButton) {
-			e.preventDefault();
-			playButton.click();
-		}
-	});
 
 	/* Initial UI */
 	updateTimeText();

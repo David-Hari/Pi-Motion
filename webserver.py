@@ -17,6 +17,7 @@ def create(camera, config: OmegaConf):
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
 	video_dir = config.final_dir
+	frame_rate = config.camera.framerate
 	grapher = Grapher(config)
 
 	web_dir = str(Path(__file__).parent / 'web')
@@ -95,7 +96,7 @@ def create(camera, config: OmegaConf):
 	@app.route('/captures/play/<name>')
 	def play_capture(name):
 		"""Play the selected file"""
-		return flask.render_template('play.html', name=name)
+		return flask.render_template('play.html', name=name, frame_rate=frame_rate)
 
 
 	@app.route('/captures/graphs/<name>/max_motion')
