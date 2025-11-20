@@ -1,8 +1,6 @@
 
-
-* Always show video controls, and below the video not with a big black gradient over it
-* Then it can be aligned to motion graph
-
+* Graphs seem to show motion about 5 seconds after it happens.
+  Maybe in Grapher.read_stats_if_needed, it can try to align the numbers based on the start_time in the .json file
 
 * Auto-reload config when file is changed. Things will be notified with old and new config.
 * Re-generate (delete) images if it detects change to image settings.

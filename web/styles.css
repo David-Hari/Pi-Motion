@@ -1,7 +1,9 @@
 
 :root {
-	--selection-colour: hsl(271, 50%, 40%);
-	--selection-colour-outline: hsl(271, 60%, 60%);
+	--text-colour: hsl(0deg 0% 93%);
+	--primary-colour-hue: 271deg;
+	--primary-colour: hsl(var(--primary-colour-hue) 50% 40%);
+	--primary-colour-highlight: hsl(var(--primary-colour-hue) 60% 60%);
 	--main-border-radius: 8px;
 }
 
@@ -9,19 +11,19 @@ body {
 	font-family: sans-serif;
 	max-width: 1328px;
 	margin: 20px auto;
-	color: hsl(0deg 0% 93%);
+	color: var(--text-colour);
 	background: hsl(0deg 0% 7%);
 }
 
 a {
-	color: hsl(44, 10%, 85%);
+	color: hsl(44deg, 10%, 85%);
 	text-decoration: none;
 }
 a:hover {
 	text-decoration: underline;
 }
 a:visited {
-	color: hsl(44, 20%, 50%);
+	color: hsl(44deg, 20%, 50%);
 }
 
 
@@ -36,7 +38,7 @@ a:visited {
 	border-top-left-radius: var(--main-border-radius);
 	border-top-right-radius: var(--main-border-radius);
 	text-align: center;
-	color: hsl(44, 100%, 94%);
+	color: hsl(44deg 100% 94%);
 }
 
 .tab {
@@ -44,7 +46,7 @@ a:visited {
 }
 
 .tab:hover:not(.active) {
-	background-color: var(--selection-colour);
+	background-color: var(--primary-colour);
 }
 
 /* Override other rules for <a> */
@@ -81,6 +83,7 @@ a.tab:visited {
 	max-width: 100%;
 	height: auto;
 	border: 2px solid black;
+	background: black;
 }
 
 
@@ -119,17 +122,17 @@ a.tab:visited {
 }
 
 .captures table tbody tr:hover {
-	background-color: var(--selection-colour);
+	background: linear-gradient(0deg, hsl(var(--primary-colour-hue) 50% 30%), hsl(var(--primary-colour-hue) 50% 50%));
 }
 .captures table tbody tr:hover td {
-	border-top-color: var(--selection-colour-outline);
-	border-bottom-color: var(--selection-colour-outline);
+	border-top-color: var(--primary-colour-highlight);
+	border-bottom-color: hsl(var(--primary-colour-hue) 60% 50%);
 }
 .captures table tbody tr:hover td:first-child {
-	border-left-color: var(--selection-colour-outline);
+	border-left-color: var(--primary-colour-highlight);
 }
 .captures table tbody tr:hover td:last-child {
-	border-right-color: var(--selection-colour-outline);
+	border-right-color: var(--primary-colour-highlight);
 }
 
 .captures td.download {
@@ -154,6 +157,7 @@ a.tab:visited {
 /********************************/
 
 .play video {
+	display: block;
 	max-width: 100%
 }
 
@@ -172,4 +176,97 @@ a.tab:visited {
 	margin: 4px 0;
     height: 20px;
     width: 100%;
+}
+
+
+/********************************/
+/*  Video controls              */
+/********************************/
+
+.video-player .controls {
+	display: flex;
+	margin: 8px 0;
+	border-radius: 8px;
+	align-items: center;
+	gap: 12px;
+}
+
+.play-button {
+	width: 30px;
+	height: 30px;
+	color: var(--text-colour);
+	background: transparent;
+	border-radius: 6px;
+	border: 1px solid hsl(0deg 0% 20%);
+	cursor: pointer;
+	user-select: none;
+}
+
+.play-button:hover {
+	border-color: var(--primary-colour-highlight);
+	background: var(--primary-colour);
+}
+
+.play-button:active {
+	background: hsl(var(--primary-colour-hue) 60% 40%);
+}
+
+.time-text {
+	min-width: 90px;
+	text-align: left;
+	font-size: 13px;
+}
+
+.progress-wrap {
+	margin: 12px 0;
+}
+
+/* Use thick border with 0 height so that thumb appears entirely within the bar
+   and doesn't extend beyond it when at start or end. */
+.progress-bar,
+.progress-bar .buffer-range,
+.progress-bar .played-bar {
+	height: 0px;
+	border-width: 8px;
+	border-style: solid;
+	border-radius: var(--main-border-radius);
+}
+.progress-bar .buffer-range,
+.progress-bar .played-bar {
+	position: absolute;
+	top: -8px;
+	left: -8px;
+}
+
+.progress-bar {
+	position: relative;
+	cursor: pointer;
+	border-color: hsl(0deg 0% 25%);
+}
+
+.progress-bar .buffer-range {
+	opacity: 0.7;
+	border-color: hsl(0deg 0% 35%);
+}
+
+.progress-bar .played-bar {
+	border-color: var(--primary-colour);
+	pointer-events: none;
+}
+
+.progress-bar .thumb {
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%,-50%);
+	width: 12px;
+	height: 12px;
+	background: hsl(0deg 0% 90%);
+	border: 3px solid hsl(var(--primary-colour-hue) 50% 50%);
+	border-radius: 50%;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+	pointer-events: auto;
+}
+
+.progress-bar .thumb:hover {
+	border-color: hsl(var(--primary-colour-hue) 50% 60%);
 }

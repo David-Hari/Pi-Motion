@@ -4,6 +4,7 @@
 	<meta charset="utf-8">
 	<title>Motion Detection - Captures</title>
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}" />
+	<script src="{{ url_for('static', filename='video-controls.js') }}" defer></script>
 </head>
 <body>
 <div class="tab-container">
@@ -11,11 +12,22 @@
 	<a class="tab active" href="{{ url_for('captures') }}">Captures</a>
 </div>
 <div class="content-container play">
-	<div>
-		<video controls autoplay>
+	<div class="video-player">
+		<video autoplay>
 			<source src="{{ url_for('download_capture', name=name) }}" type="video/mp4">
 			Your browser does not support the video tag.
 		</video>
+		<div class="controls">
+			<button class="play-button" aria-pressed="false" title="Play/Pause">▶</button>
+			<div class="time-text">-:-- / -:--</div>
+		</div>
+		<div class="progress-wrap">
+			<div class="progress-bar" aria-hidden="false" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+				<div class="buffer-range" style="width:0%"></div>
+				<div class="played-bar" style="width: 0%"></div>
+				<div class="thumb" style="left: 0%"></div>
+			</div>
+		</div>
 		<img class="motion-graph" src="{{ url_for('max_motion_graph', name=name) }}" title="Graph of largest motion per block in each frame">
 		<img class="motion-graph" src="{{ url_for('motion_sum_graph', name=name) }}" title="Graph of the sum of motion vectors in each frame">
 		<img class="sad-graph" src="{{ url_for('sad_sum_graph', name=name) }}" title="Graph of the sum of S.A.D values per frame">
