@@ -75,7 +75,7 @@ def create(camera, config: OmegaConf):
 		"""List files in the video directory"""
 		items = []
 		if video_dir.exists():
-			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime):
+			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime, reverse=True):
 				info = CaptureInfo.read_from_file(path.with_suffix('.json'))
 				items.append({
 					'name': info.name if info else path.stem,
