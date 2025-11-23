@@ -72,6 +72,10 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		Sets `self.trigger` event to trigger capture.
 		"""
 
+		frame_time = self.camera.frame.timestamp
+		if frame_time is None:   # PiCamera documentation says timestamp can occasionally be "unknown"
+			return
+
 		# Get direction vector
 		direction = np.sqrt(
 			np.square(data['x'].astype(np.float)) +
@@ -84,8 +88,7 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		sad_sum = int(data['sad'].sum())
 
 		with self.stats_lock:
-			stats = FrameStats(self.boot_timestamp + self.camera.frame.timestamp,
-			                   max_direction, direction_sum, sad_sum)
+			stats = FrameStats(self.boot_timestamp + frame_time, max_direction, direction_sum, sad_sum)
 			if self.is_recording:
 				self.statistics.append(stats)
 			else:
