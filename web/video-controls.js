@@ -38,6 +38,7 @@
 		playedBar.style.width = playPercent + '%';
 		thumb.style.left = playPercent + '%';
 		progressBar.setAttribute('aria-valuenow', Math.round(playPercent));
+		updateBuffered();
 	}
 
 
@@ -75,15 +76,25 @@
 	let dragging = false;
 	progressBar.addEventListener('mousedown', function(ev){
 		dragging = true;
+		document.body.style.userSelect = 'none';
 		seek(ev);
 	});
 
-	progressBar.addEventListener('mouseup', function(ev){
-		dragging = false;
+	thumb.addEventListener('mousedown', function(ev){
+		dragging = true;
+		document.body.style.userSelect = 'none';
 		seek(ev);
 	});
 
-	progressBar.addEventListener('mousemove', function(ev){
+	document.addEventListener('mouseup', function(ev){
+		if (dragging) {
+			dragging = false;
+			document.body.style.userSelect = '';
+			seek(ev);
+		}
+	});
+
+	document.addEventListener('mousemove', function(ev){
 		if (dragging) {
 			seek(ev);
 		}
@@ -163,7 +174,6 @@
 	});
 
 	video.addEventListener('loadedmetadata', function(){
-		updateBuffered();
 		updatePlayed();
 		updateTimeText();
 	});

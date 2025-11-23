@@ -253,7 +253,6 @@ a.tab:visited {
 
 .progress-bar .played-bar {
 	border-color: var(--primary-colour);
-	pointer-events: none;
 }
 
 .progress-bar .thumb {
@@ -262,11 +261,11 @@ a.tab:visited {
 	transform: translate(-50%,-50%);
 	width: 12px;
 	height: 12px;
+	pointer-events: auto;
 	background: hsl(0deg 0% 90%);
 	border: 3px solid hsl(var(--primary-colour-hue) 50% 50%);
 	border-radius: 50%;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-	pointer-events: auto;
 }
 
 .progress-bar .thumb:hover {
