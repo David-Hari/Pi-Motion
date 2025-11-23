@@ -66,6 +66,22 @@ class MotionRecorder(threading.Thread):
 			pass
 
 
+	def apply_camera_settings(self, settings: dict):
+		"""
+		Iterate over all the settings in the given dictionary and set the property with the same name in the camera object
+		"""
+		# These settings are explicitly set when setting up the camera
+		skip = ['width', 'height', 'sensor_mode', 'framerate', 'bitrate']
+		for key in settings:
+			if key in skip or settings[key] is None:
+				continue
+			try:
+				print(f'Setting property {key} on camera')
+				setattr(self.camera, key, settings[key])
+			except AttributeError:
+				print(f'Attempted to set property {key}, but that is not a known property of PiCamera')
+
+
 	def start_camera(self):
 		"""
 		Sets up PiCamera to record H.264 High/4.1 profile video with enough intra frames that there is
@@ -81,11 +97,7 @@ class MotionRecorder(threading.Thread):
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bitrate,
 		                            intra_period=self.seconds_pre * camera_settings.framerate // 2)
-
-		#TODO: Iterate over camera_settings dict and set the values that exist
-		self.camera.annotate_text_size = 15
-		self.camera.hflip = camera_settings.hflip
-		self.camera.vflip = camera_settings.vflip
+		self.apply_camera_settings(camera_settings)
 
 		print('Waiting for camera to warm up...')
 		self.camera.wait_recording(2)  # Give camera some time to start up
