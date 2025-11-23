@@ -129,7 +129,7 @@ class MotionRecorder(threading.Thread):
 							if self.motion.has_detected_motion():
 								self.motion.clear_trigger()
 								last_motion_time = time.monotonic()
-							self.wait(self.seconds_pre / 2)
+							self.motion.wait(self.seconds_pre / 2)
 							self.append_buffer(output)
 							if time.monotonic() - last_motion_time > self.seconds_post:
 								#TODO: Also have a max recording time. If it goes over that, stop it
