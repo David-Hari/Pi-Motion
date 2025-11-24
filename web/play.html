@@ -19,9 +19,16 @@
 			Your browser does not support the video tag.
 		</video>
 		<div class="controls">
-			<button class="prev-frame-button" aria-pressed="false" title="Previous Frame">&lt;</button>
-			<button class="play-button" aria-pressed="false" title="Play/Pause">▶</button>
-			<button class="next-frame-button" aria-pressed="false" title="Next Frame">&gt;</button>
+			<button class="prev-frame-button" aria-pressed="false">
+				<img src="{{ url_for('static', filename='skip.svg') }}" alt="Previous Frame">
+			</button>
+			<button class="play-button" aria-pressed="false">
+				<img class="play-icon" src="{{ url_for('static', filename='play.svg') }}" alt="Play">
+				<img class="pause-icon" src="{{ url_for('static', filename='pause.svg') }}" style="display: none" alt="Pause">
+			</button>
+			<button class="next-frame-button" aria-pressed="false">
+				<img src="{{ url_for('static', filename='skip.svg') }}" alt="Next Frame">
+			</button>
 			<div class="time-text">-:-- / -:--</div>
 		</div>
 		<div class="progress-wrap">

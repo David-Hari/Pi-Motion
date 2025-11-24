@@ -1,6 +1,7 @@
 
 :root {
 	--text-colour: hsl(0deg 0% 93%);
+	--icon-filter: brightness(93%);   /* For svg, as it does not take foreground colour. Assumes svg is white */
 	--primary-colour-hue: 271deg;
 	--primary-colour: hsl(var(--primary-colour-hue) 50% 40%);
 	--primary-colour-highlight: hsl(var(--primary-colour-hue) 60% 60%);
@@ -142,7 +143,7 @@ a.tab:visited {
 .captures td.download img {
 	width: 20px;
 	height: 20px;
-	filter: brightness(94%);  /* Assumes svg is white */
+	filter: var(--icon-filter);
 }
 
 .captures td > .motion-graph {
@@ -195,12 +196,25 @@ a.tab:visited {
 .video-player .controls button {
 	width: 30px;
 	height: 30px;
-	color: var(--text-colour);
+	padding: 4px;
 	background: transparent;
 	border-radius: 6px;
 	border: 1px solid hsl(0deg 0% 20%);
 	cursor: pointer;
 	user-select: none;
+}
+
+.video-player .controls button img {
+	filter: var(--icon-filter);
+}
+
+.video-player .controls .prev-frame-button,
+.video-player .controls .next-frame-button {
+	padding: 6px;   /* To make icons a little smaller */
+}
+
+.video-player .controls .prev-frame-button img {
+	transform: scaleX(-1);
 }
 
 .video-player .controls button:hover {

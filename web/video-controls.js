@@ -60,7 +60,6 @@
 	}
 
 
-
 	/* Click / drag to seek */
 	function seek(ev){
 		if (!isFinite(video.duration) || video.duration === 0) {
@@ -150,12 +149,16 @@
 
 	/* Update play button text/icon */
 	function updatePlayButton(){
+		let playIcon = playButton.getElementsByClassName('play-icon')[0];
+		let pauseIcon = playButton.getElementsByClassName('pause-icon')[0];
 		if (video.paused || video.ended) {
-			playButton.textContent = '▶';
+			playIcon.style.display = '';
+			pauseIcon.style.display = 'none';
 			playButton.setAttribute('aria-pressed', 'false');
 		}
 		else {
-			playButton.textContent = '❚❚';
+			playIcon.style.display = 'none';
+			pauseIcon.style.display = '';
 			playButton.setAttribute('aria-pressed', 'true');
 		}
 	}
