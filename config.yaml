@@ -15,6 +15,7 @@ final_dir: "/media/videos" # But USB stick has more space
 
 seconds_pre: 20
 seconds_post: 60
+max_recording_time: 300
 
 per_block_threshold: 50    # Motion vector for a single block in a frame must exceed this value
 num_threshold_blocks: 10   # At least this many motion vector blocks must have met the `per_block_threshold`

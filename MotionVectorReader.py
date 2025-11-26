@@ -1,7 +1,6 @@
 # Taken from https://github.com/osmaa/pinymotion
 import threading
 from collections import deque
-from dataclasses import dataclass
 import picamerax as picamera
 import picamerax.array
 import numpy as np
@@ -21,7 +20,7 @@ class MotionVectorReader(picamera.array.PiMotionAnalysis):
 		"""Initialize motion vector reader"""
 		super(type(self), self).__init__(camera)
 		self.camera = camera
-		self.boot_timestamp = boot_timestamp   # Needed to calculate absolute time of each frame
+		self.boot_timestamp = boot_timestamp   # Microseconds, UTC. Needed to calculate absolute time of each frame
 		self.per_block_threshold = config.per_block_threshold
 		self.num_threshold_blocks = config.num_threshold_blocks
 		self.per_frame_threshold = config.per_frame_threshold

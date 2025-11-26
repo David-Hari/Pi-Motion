@@ -41,6 +41,7 @@ class AppConfig:
 	final_dir: Path
 	seconds_pre: int = 10
 	seconds_post: int = 60
+	max_recording_time: int = 300   # Maximum number of seconds a recording can be
 	per_block_threshold: int = 50   # Motion vector for a single block in a frame must equal or exceed this value
 	num_threshold_blocks: int = 10  # Number of motion vector blocks to have met the `per_block_threshold`
 	per_frame_threshold: int = 1500 # Sum of all motion vectors in a frame must equal or exceed this value

@@ -9,7 +9,7 @@ from picamerax import PiCamera, PiCameraCircularIO, PiCameraError, PiVideoFrameT
 from picamerax.exc import PiCameraNotRecording
 from omegaconf import OmegaConf
 
-from MotionVectorReader import MotionVectorReader, FrameStats as MVFrameStats
+from MotionVectorReader import MotionVectorReader
 from data import CaptureInfo
 
 
@@ -29,6 +29,7 @@ class MotionRecorder(threading.Thread):
 		self.height = config.camera.height
 		self.seconds_pre = config.seconds_pre    # Number of seconds to keep in buffer
 		self.seconds_post = config.seconds_post  # Number of seconds to record post end of motion
+		self.max_recording_time = config.max_recording_time
 		self.file_pattern = '%Y-%m-%dT%H-%M-%S'  # Date pattern for saved recordings
 		self.label_pattern = '%Y-%m-%d %H:%M'    # Date pattern for annotation text
 		self.output_dir = config.staging_dir
@@ -38,8 +39,7 @@ class MotionRecorder(threading.Thread):
 		# Get boot time here to calculate absolute time of recording.
 		with open('/proc/uptime') as f:
 			uptime_seconds = float(f.read().split()[0])
-		now = datetime.now(timezone.utc)
-		self.boot_timestamp = int((now - timedelta(seconds=uptime_seconds)).timestamp() * 1000000) # Microseconds, UTC
+		self.boot_time = datetime.now(timezone.utc) - timedelta(seconds=uptime_seconds)
 
 
 	def __enter__(self):
@@ -92,7 +92,7 @@ class MotionRecorder(threading.Thread):
 		self.camera = PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
 		                       resolution=(self.width, self.height), framerate=camera_settings.framerate)
 		self.stream = PiCameraCircularIO(self.camera, seconds=self.seconds_pre + 1, bitrate=camera_settings.bitrate)
-		self.motion = MotionVectorReader(self.camera, boot_timestamp=self.boot_timestamp,
+		self.motion = MotionVectorReader(self.camera, boot_timestamp=int(self.boot_time.timestamp() * 1000000),
 		                                 pre_frames=self.seconds_pre * camera_settings.framerate, config=self.config)
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bitrate,
@@ -115,7 +115,7 @@ class MotionRecorder(threading.Thread):
 		while self.camera.recording:
 			if self.motion.wait(self.seconds_pre):
 				try:
-					start_time = self.boot_timestamp + self.camera.timestamp - (self.seconds_pre * 1000000)
+					start_time = self.boot_time + self.get_camera_time() - timedelta(seconds=self.seconds_pre)
 					self.motion.clear_trigger()
 					self.motion.start_capturing_statistics()
 
@@ -123,24 +123,27 @@ class MotionRecorder(threading.Thread):
 					name = time.strftime(self.file_pattern)
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
 						print('Started writing video file')
+						last_motion_time = self.get_camera_time()
 						self.append_buffer(output, header=True)
-						last_motion_time = time.monotonic()
 						while self.camera.recording:
 							if self.motion.has_detected_motion():
 								self.motion.clear_trigger()
-								last_motion_time = time.monotonic()
+								last_motion_time = self.get_camera_time()
 							self.motion.wait(self.seconds_pre / 2)
 							self.append_buffer(output)
-							if time.monotonic() - last_motion_time > self.seconds_post:
-								#TODO: Also have a max recording time. If it goes over that, stop it
+							current_time = self.get_camera_time()
+							if current_time - last_motion_time > timedelta(seconds=self.seconds_post):
 								break
-						end_time = self.boot_timestamp + self.camera.timestamp
+							if (self.boot_time + current_time) - start_time > timedelta(seconds=self.max_recording_time):
+								print('Max recording time reached')
+								break
+						end_time = self.boot_time + self.get_camera_time()
 						motion_stats = self.motion.stop_capturing_and_get_stats()
 						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
 						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
 						print('Finished writing video file')
 						self.captures.put(
-							(CaptureInfo(name, start_time, (end_time - start_time) / 1000000, max_motion, max_sad),
+							(CaptureInfo(name, int(start_time.timestamp() * 1000000), (end_time - start_time).total_seconds(), max_motion, max_sad),
 							 motion_stats)
 						)
 				except PiCameraError as e:
@@ -164,3 +167,8 @@ class MotionRecorder(threading.Thread):
 		while camera.recording:
 			camera.annotate_text = time.strftime(self.label_pattern)
 			self.wait(60-time.gmtime().tm_sec) # wait to beginning of minute
+
+
+	def get_camera_time(self):
+		"""With clock_mode='raw' (see `start_camera`), camera's timestamp is microseconds since system boot."""
+		return timedelta(microseconds=self.camera.timestamp)
