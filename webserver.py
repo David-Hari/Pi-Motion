@@ -1,8 +1,10 @@
 import io
 import threading
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
+from collections import OrderedDict
+from itertools import groupby
 from omegaconf import OmegaConf
 import flask
 from flask import Flask, Response, url_for
@@ -74,17 +76,21 @@ def create(camera, config: OmegaConf):
 	def captures():
 		"""List files in the video directory"""
 		items = []
+		grouped = OrderedDict()
 		if video_dir.exists():
 			for path in sorted(video_dir.glob('*.mp4'), key=lambda x: x.stat().st_mtime, reverse=True):
 				info = CaptureInfo.read_from_file(path.with_suffix('.json'))
 				items.append({
 					'name': info.name if info else path.stem,
-					'timestamp': format_time(info.start_time) if info else path.stem,  # Assuming file name is timestamp
+					'timestamp': parse_time(info.start_time) if info else datetime.now(),
 					'length': format_seconds(info.length_seconds) if info else '--',
 					'max_motion': info.max_motion if info else '--',
 					'max_sad': info.max_sad if info else '--'
 				})
-		return flask.render_template('captures.html', items=items)
+			for day, group in groupby(items, key=lambda each: each['timestamp'].date()):
+				grouped[day] = list(group)
+
+		return flask.render_template('captures.html', grouped=grouped)
 
 
 	@app.route('/captures/download/<name>')
@@ -122,8 +128,8 @@ def create(camera, config: OmegaConf):
 	return app
 
 
-def format_time(t):
-	return datetime.fromtimestamp(t / 1000000, tz=timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
+def parse_time(t):
+	return datetime.fromtimestamp(t / 1000000, tz=timezone.utc).astimezone()
 
 def format_seconds(s):
 	return f'{int(s/60):0d}m:{int(s%60):02d}s'

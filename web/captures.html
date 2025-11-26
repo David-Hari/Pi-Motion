@@ -11,7 +11,6 @@
 	<a class="tab active" href="">Captures</a>
 </div>
 <div class="content-container captures">
-	<p>Recorded events</p>
 	<table>
 		<thead>
 		<tr>
@@ -24,9 +23,13 @@
 		</tr>
 		</thead>
 		<tbody>
+		{% for day, items in grouped.items() %}
+		<tr class="day-header">
+			<td colspan="6">{{ day.strftime('%A, %d %B %Y') }}</td>
+		</tr>
 		{% for item in items %}
-		<tr>
-			<td><a href="{{ url_for('play_capture', name=item.name) }}">{{ item.timestamp }}</a></td>
+		<tr class="item">
+			<td><a href="{{ url_for('play_capture', name=item.name) }}">{{ item.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</a></td>
 			<td>{{ item.length }}</td>
 			<td>{{ item.max_motion }}</td>
 			<td>{{ item.max_sad }}</td>
@@ -39,6 +42,7 @@
 				</a>
 			</td>
 		</tr>
+		{% endfor %}
 		{% endfor %}
 		</tbody>
 	</table>

@@ -109,30 +109,42 @@ a.tab:visited {
 	border-color: transparent;
 	border-style: solid;
 }
-.captures table tbody tr td:first-child {
+
+.captures table tr.day-header td {
+	padding: 20px 4px 8px 4px;
+}
+
+.captures table tr.day-header td::after {
+	content: "";
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid hsl(0deg 0% 40%);
+}
+
+.captures table tr.item td:first-child {
 	border-top-left-radius: var(--main-border-radius);
 	border-bottom-left-radius: var(--main-border-radius);
 }
-.captures table tbody tr td:last-child {
+.captures table tr.item td:last-child {
 	border-top-right-radius: var(--main-border-radius);
 	border-bottom-right-radius: var(--main-border-radius);
 }
 
-.captures table tbody tr:not(:hover):nth-child(even) {
+.captures table tr.item:not(:hover):nth-child(even) {
 	background: hsl(0deg 0% 15%);
 }
 
-.captures table tbody tr:hover {
+.captures table tr.item:hover {
 	background: linear-gradient(0deg, hsl(var(--primary-colour-hue) 50% 30%), hsl(var(--primary-colour-hue) 50% 50%));
 }
-.captures table tbody tr:hover td {
+.captures table tr.item:hover td {
 	border-top-color: var(--primary-colour-highlight);
 	border-bottom-color: hsl(var(--primary-colour-hue) 60% 50%);
 }
-.captures table tbody tr:hover td:first-child {
+.captures table tr.item:hover td:first-child {
 	border-left-color: var(--primary-colour-highlight);
 }
-.captures table tbody tr:hover td:last-child {
+.captures table tr.item:hover td:last-child {
 	border-right-color: var(--primary-colour-highlight);
 }
 
