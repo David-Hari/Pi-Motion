@@ -120,7 +120,7 @@ class MotionRecorder(threading.Thread):
 					self.motion.start_capturing_statistics()
 
 					# Start a new video, then append circular buffer to it until motion ends
-					name = time.strftime(self.file_pattern)
+					name = start_time.strftime(self.file_pattern)
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
 						print('Started writing video file')
 						last_motion_time = self.get_camera_time()
