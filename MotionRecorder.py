@@ -129,7 +129,7 @@ class MotionRecorder(threading.Thread):
 							if self.motion.has_detected_motion():
 								self.motion.clear_trigger()
 								last_motion_time = self.get_camera_time()
-							self.motion.wait(self.seconds_pre / 2)
+							self.motion.wait(1)
 							self.append_buffer(output)
 							current_time = self.get_camera_time()
 							if current_time - last_motion_time > timedelta(seconds=self.seconds_post):
@@ -137,15 +137,15 @@ class MotionRecorder(threading.Thread):
 							if (self.boot_time + current_time) - start_time > timedelta(seconds=self.max_recording_time):
 								print('Max recording time reached')
 								break
-						end_time = self.boot_time + self.get_camera_time()
-						motion_stats = self.motion.stop_capturing_and_get_stats()
-						max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
-						max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
-						print('Finished writing video file')
-						self.captures.put(
-							(CaptureInfo(name, int(start_time.timestamp() * 1000000), (end_time - start_time).total_seconds(), max_motion, max_sad),
-							 motion_stats)
-						)
+					print('Finished writing video file')
+					end_time = self.boot_time + self.get_camera_time()
+					motion_stats = self.motion.stop_capturing_and_get_stats()
+					max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
+					max_sad = max(motion_stats, key=lambda each: each.sad_sum).sad_sum
+					self.captures.put(
+						(CaptureInfo(name, int(start_time.timestamp() * 1000000), (end_time - start_time).total_seconds(), max_motion, max_sad),
+						 motion_stats)
+					)
 				except PiCameraError as e:
 					print('Could not save recording: ' + e)
 					pass
@@ -159,7 +159,6 @@ class MotionRecorder(threading.Thread):
 		with s.lock:
 			s.copy_to(output, seconds=self.seconds_pre, first_frame=PiVideoFrameType.sps_header if header else None)
 			s.clear()
-		return output
 
 
 	def annotate_with_datetime(self, camera):
