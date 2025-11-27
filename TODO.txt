@@ -1,10 +1,8 @@
 
-* Group captures by day and show long format date in headings
-
 
 * Graphs seem to show motion about 5 seconds after it happens, mainly near the start of the video.
-  May have something to do with waiting for self.seconds_pre / 2.
-  Maybe in Grapher.read_stats_if_needed, it can try to align the numbers based on the start_time in the .json file
+  Length of video is also sometimes a bit shorter than it says.
+  This may be because circular buffer hasn't completely filled and therefore start_time is wrong.
 
 
 * Put UI controls on live view, have '/controls' (def adjust_camera_controls) endpoint to adjust in real time
