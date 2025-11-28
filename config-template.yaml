@@ -1,0 +1,24 @@
+
+camera:
+  # For the V1 camera (OV5647) the best mode is 4, which gives full field of view at
+  # 4:3 aspect ratio and 2x2 binning, resulting in an area of 1296x972
+  sensor_mode: 4
+  width: 1296
+  height: 972
+  framerate: 15
+  bitrate: 2000000  # 2Mbps is a high quality stream for 10-15 fps HD video
+
+staging_dir: "./output/staging" # Where the original recorded H-264 files will go. Put this on fast storage (such as the memory card)
+video_dir: "./output/videos"    # Where the re-encoded MP4 files will go. This can be an external drive with more space.
+data_dir: "./output/videos"     # Where the data files and graph images will go.
+
+seconds_pre: 10            # Number of seconds to capture before motion is detected (uses an in-memory circular buffer)
+seconds_post: 60           # Number of seconds to keep recording after motion has been detected
+max_recording_time: 300    # Maximum number of seconds a recording can be
+
+per_block_threshold: 50    # Motion vector for a single block in a frame must exceed this value
+num_threshold_blocks: 10   # At least this many motion vector blocks must have met the `per_block_threshold`
+per_frame_threshold: 1500  # Sum of all motion vectors in a frame must exceed this value
+per_block_upper_bound: 100    # This is the highest we expect the motion vector per block to be. Used for graph scaling.
+per_frame_upper_bound: 50000  # This is the highest we expect the sum of all vectors per frame to be. Used for graph scaling.
+scale_boost: 20            # How much to boost lower values in log-scaled graphs. 5 = mild, 10 = medium, 50 = strong, 100 = very strong

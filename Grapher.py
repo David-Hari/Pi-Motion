@@ -10,7 +10,7 @@ from data import read_frame_stats, FrameStats
 class Grapher:
 	def __init__(self, config: OmegaConf):
 		self.image_height = 4
-		self.output_dir = config.final_dir
+		self.output_dir = config.data_dir
 		self.per_block_threshold = config.per_block_threshold
 		self.per_frame_threshold = config.per_frame_threshold
 		self.per_block_upper_bound = config.per_block_upper_bound

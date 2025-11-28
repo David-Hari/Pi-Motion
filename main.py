@@ -1,6 +1,7 @@
 # Taken from https://github.com/osmaa/pinymotion
 import subprocess
 from pathlib import Path
+import shutil
 from dataclasses import dataclass
 from omegaconf import OmegaConf, MISSING
 from typing import Optional
@@ -36,11 +37,11 @@ class CameraConfig:
 @dataclass
 class AppConfig:
 	camera: CameraConfig
-	staging_dir: Path
-	# TODO: Maybe insted have video_dir for mp4 files and data_dir for json, bin and png. data_dir can default to video_dir
-	final_dir: Path
-	seconds_pre: int = 10
-	seconds_post: int = 60
+	staging_dir: Path = MISSING     # Where the original recorded H-264 files will go
+	video_dir: Path = MISSING       # Where the re-encoded MP4 files will go
+	data_dir: Path = MISSING        # Where the data files and graph images will go
+	seconds_pre: int = 10           # Number of seconds to capture before motion is detected (uses an in-memory circular buffer)
+	seconds_post: int = 60          # Number of seconds to keep recording after motion has been detected
 	max_recording_time: int = 300   # Maximum number of seconds a recording can be
 	per_block_threshold: int = 50   # Motion vector for a single block in a frame must equal or exceed this value
 	num_threshold_blocks: int = 10  # Number of motion vector blocks to have met the `per_block_threshold`
@@ -51,8 +52,18 @@ class AppConfig:
 	web_port: int = 8080
 
 
+config_file = Path('config.yaml')
+if not config_file.is_file():
+	print('Creating config file')
+	shutil.copyfile('config-template.yaml', 'config.yaml')
+
 schema = OmegaConf.structured(AppConfig)
 config = OmegaConf.merge(schema, OmegaConf.load('config.yaml'))
+
+config.staging_dir.mkdir(exist_ok=True)
+config.video_dir.mkdir(exist_ok=True)
+config.data_dir.mkdir(exist_ok=True)
+
 try:
 	with MotionRecorder(config) as recorder:
 		recorder.start()
@@ -67,14 +78,14 @@ try:
 			# Convert file
 			try:
 				input_file = config.staging_dir.joinpath(f'{capture_info.name}.h264')
-				output_file = config.final_dir.joinpath(f'{capture_info.name}.mp4')
+				output_file = config.video_dir.joinpath(f'{capture_info.name}.mp4')
 				proc = subprocess.Popen(['./convert.sh', str(input_file), str(output_file), str(config.camera.framerate)])
 				print(f'Starting conversion in sub process {proc.pid}')
 			except Exception as e:
 				print(f'Failed to convert video. {e}')
 
-			capture_info.write_to_file(config.final_dir)
-			write_frame_stats(config.final_dir, capture_info.name, frame_stats)
+			capture_info.write_to_file(config.data_dir)
+			write_frame_stats(config.data_dir, capture_info.name, frame_stats)
 
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):

@@ -18,7 +18,7 @@ def create(camera, config: OmegaConf):
 
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
-	video_dir = config.final_dir
+	video_dir = config.video_dir
 	frame_rate = config.camera.framerate
 	grapher = Grapher(config)
 
