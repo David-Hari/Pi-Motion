@@ -42,7 +42,10 @@ class CaptureInfo:
 
 	@classmethod
 	def read_from_file(cls, file_path: Path):
-		return cls.from_json(file_path.read_text()) if file_path.exists() else None
+		if not file_path.exists():
+			print(f'Capture info not found for {file_path}')
+			return None
+		return cls.from_json(file_path.read_text())
 
 	def write_to_file(self, output_dir: Path):
 		json_path = output_dir.joinpath(f'{self.name}.json')
