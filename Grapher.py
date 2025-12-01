@@ -2,6 +2,7 @@ import math
 from pathlib import Path
 from typing import Union
 from omegaconf import OmegaConf
+import numpy as np
 from PIL import Image, ImageDraw
 
 from data import read_frame_stats, FrameStats
@@ -36,10 +37,10 @@ class Grapher:
 
 	def make_image(self, file_path: Path, gradient, data_list, lower_bound, upper_bound):
 		print(f'Creating graph image {file_path}')
-		image = Image.new('RGB', (len(data_list), self.image_height))
-		draw = ImageDraw.Draw(image)
-		for x, each in enumerate(data_list):
-			draw.line([(x, 0), (x, self.image_height)], fill=gradient(self.scale(each, lower_bound, upper_bound)))
+		values = np.asarray(data_list, dtype=np.float32)
+		colors = gradient(self.scale(values, lower_bound, upper_bound))  # (N, 3) array
+		img_data = np.repeat(colors[np.newaxis, :, :], self.image_height, axis=0)
+		image = Image.fromarray(img_data, mode='RGB')
 		image.save(file_path)
 
 
@@ -86,8 +87,10 @@ class Grapher:
 
 
 	def scale(self, value, lower_bound, upper_bound):
-		scaled = max(value - lower_bound, 1e-9) / (upper_bound - lower_bound)  # 1e-9 is to avoid log(0)
-		return math.log1p(scaled * self.scale_boost) / math.log1p(self.scale_boost)
+		# value may be scalar or NumPy array
+		value = np.asarray(value, dtype=np.float32)
+		scaled = np.maximum(value - lower_bound, 1e-9) / (upper_bound - lower_bound)  # 1e-9 is to avoid log(0)
+		return np.log1p(scaled * self.scale_boost) / math.log1p(self.scale_boost)
 
 
 def make_gradient(stops, colours):
@@ -95,20 +98,25 @@ def make_gradient(stops, colours):
 	stops: list of positions, must be 0..1
 	colours: list of (r,g,b), must be same length as stops
 	"""
+	stops = np.asarray(stops, dtype=np.float32)
+	colours = np.asarray(colours, dtype=np.float32)
+
 	def gradient(t):
-		t = max(0.0, min(1.0, t))
-		for i in range(1, len(stops)):
-			p0 = stops[i-1]
-			c0 = colours[i-1]
-			p1 = stops[i]
-			c1 = colours[i]
-			if t <= p1:
-				f = (t - p0) / (p1 - p0) if p1 > p0 else 0
-				return (
-					int(c0[0] + (c1[0] - c0[0]) * f),
-					int(c0[1] + (c1[1] - c0[1]) * f),
-					int(c0[2] + (c1[2] - c0[2]) * f)
-				)
-		return colours[0]
+		t = np.asarray(t, dtype=np.float32)
+		t = np.clip(t, 0.0, 1.0)
+
+		# For each t, find the segment (p0,p1)
+		indices = np.searchsorted(stops, t, side='right') - 1
+		indices = np.clip(indices, 0, len(stops) - 2)
+
+		p0 = stops[indices]
+		p1 = stops[indices + 1]
+		c0 = colours[indices]
+		c1 = colours[indices + 1]
+
+		f = (t - p0) / (p1 - p0)
+		f = f[:, None]  # Broadcast into RGB shape
+
+		return (c0 + (c1 - c0) * f).astype(np.uint8)
 
 	return gradient
