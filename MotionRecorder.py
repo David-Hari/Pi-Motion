@@ -82,7 +82,7 @@ class MotionRecorder(threading.Thread):
 				logger.info(f'Setting property {key} on camera')
 				setattr(self.camera, key, settings[key])
 			except AttributeError:
-				logger.warn(f'Attempted to set property {key}, but that is not a known property of PiCamera')
+				logger.warning(f'Attempted to set property {key}, but that is not a known property of PiCamera')
 
 
 	def start_camera(self):
