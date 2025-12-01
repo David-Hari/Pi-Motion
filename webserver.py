@@ -13,8 +13,10 @@ from data import CaptureInfo
 from Grapher import Grapher
 
 
+logger = logging.getLogger(__name__)
+
 def create(camera, config: OmegaConf):
-	print('Setting up web server')
+	logger.info('Setting up web server')
 
 	log = logging.getLogger('werkzeug')
 	log.setLevel(logging.ERROR)
@@ -30,14 +32,14 @@ def create(camera, config: OmegaConf):
 		if camera is None:
 			# No camera yet — yield a 1x1 black jpeg
 			default = b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + open('/dev/null','rb').read(0) + b'\r\n'
-			print('Sending blank preview')
+			logger.info('Sending blank preview')
 			while True:
 				yield default
 
 		# Using a BytesIO and capture_continuous for MJPEG frames:
 		stream = io.BytesIO()
 		try:
-			print('Sending live preview')
+			logger.info('Sending live preview')
 			for _ in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
 				stream.seek(0)
 				data = stream.read()
@@ -48,11 +50,11 @@ def create(camera, config: OmegaConf):
 				stream.truncate()
 		except GeneratorExit:
 			# Flask will trigger this when the client disconnects
-			print('Client disconnected from live stream')
+			logger.info('Client disconnected from live stream')
 		except Exception as e:
-			print(f'Failed to provide MJPEG stream. {e}')
+			logger.error(f'Failed to provide MJPEG stream. {e}')
 		finally:
-			print('Stopped sending preview')
+			logger.info('Stopped sending preview')
 
 
 	@app.route('/')
@@ -136,8 +138,8 @@ def format_seconds(s):
 
 
 def run(app, host, port):
-	print('Starting web server...')
+	logger.info('Starting web server...')
 	server = threading.Thread(target=lambda: app.run(host=host, port=port, threaded=True, use_reloader=False), daemon=True)
 	server.start()
-	print(f'Web server is running on port {port}')
+	logger.info(f'Web server is running on port {port}')
 	return server

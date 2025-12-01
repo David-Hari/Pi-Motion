@@ -3,6 +3,7 @@ import io
 import time
 import queue
 import threading
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from picamerax import PiCamera, PiCameraCircularIO, PiCameraError, PiVideoFrameType
@@ -12,6 +13,8 @@ from omegaconf import OmegaConf
 from MotionVectorReader import MotionVectorReader
 from data import CaptureInfo
 
+
+logger = logging.getLogger(__name__)
 
 class MotionRecorder(threading.Thread):
 	"""
@@ -45,7 +48,7 @@ class MotionRecorder(threading.Thread):
 	def __enter__(self):
 		self.start_camera()
 		threading.Thread(name='annotate', target=self.annotate_with_datetime, args=(self.camera,), daemon=True).start()
-		print('Motion recorder ready')
+		logger.info('Motion recorder ready')
 		return self
 
 
@@ -76,10 +79,10 @@ class MotionRecorder(threading.Thread):
 			if key in skip or settings[key] is None:
 				continue
 			try:
-				print(f'Setting property {key} on camera')
+				logger.info(f'Setting property {key} on camera')
 				setattr(self.camera, key, settings[key])
 			except AttributeError:
-				print(f'Attempted to set property {key}, but that is not a known property of PiCamera')
+				logger.warn(f'Attempted to set property {key}, but that is not a known property of PiCamera')
 
 
 	def start_camera(self):
@@ -87,7 +90,7 @@ class MotionRecorder(threading.Thread):
 		Sets up PiCamera to record H.264 High/4.1 profile video with enough intra frames that there is
 		at least one in the in-memory circular buffer when motion is detected.
 		"""
-		print('Starting camera')
+		logger.info('Starting camera')
 		camera_settings = self.config.camera
 		self.camera = PiCamera(clock_mode='raw', sensor_mode=camera_settings.sensor_mode,
 		                       resolution=(self.width, self.height), framerate=camera_settings.framerate)
@@ -99,7 +102,7 @@ class MotionRecorder(threading.Thread):
 		                            intra_period=self.seconds_pre * camera_settings.framerate // 2)
 		self.apply_camera_settings(camera_settings)
 
-		print('Waiting for camera to warm up...')
+		logger.info('Waiting for camera to warm up...')
 		self.camera.wait_recording(2)  # Give camera some time to start up
 		self.motion.clear_trigger()    # then clear the triggered.
 		self.motion.clear_statistics()
@@ -122,7 +125,7 @@ class MotionRecorder(threading.Thread):
 					# Start a new video, then append circular buffer to it until motion ends
 					name = start_time.strftime(self.file_pattern)
 					with io.open(self.output_dir.joinpath(Path(name + '.h264')).absolute(), 'wb') as output:
-						print('Started writing video file')
+						logger.info('Started writing video file')
 						last_motion_time = self.get_camera_time()
 						self.append_buffer(output, header=True)
 						while self.camera.recording:
@@ -135,9 +138,9 @@ class MotionRecorder(threading.Thread):
 							if current_time - last_motion_time > timedelta(seconds=self.seconds_post):
 								break
 							if (self.boot_time + current_time) - start_time > timedelta(seconds=self.max_recording_time):
-								print('Max recording time reached')
+								logger.info('Max recording time reached')
 								break
-					print('Finished writing video file')
+					logger.info('Finished writing video file')
 					end_time = self.boot_time + self.get_camera_time()
 					motion_stats = self.motion.stop_capturing_and_get_stats()
 					max_motion = max(motion_stats, key=lambda each: each.motion_sum).motion_sum
@@ -147,7 +150,7 @@ class MotionRecorder(threading.Thread):
 						 motion_stats)
 					)
 				except PiCameraError as e:
-					print('Could not save recording: ' + e)
+					logger.error('Could not save recording: ' + e)
 					pass
 				# Wait for the circular buffer to fill up before looping again
 				self.wait(self.seconds_pre / 2)

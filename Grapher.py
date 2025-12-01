@@ -1,12 +1,15 @@
 import math
+import logging
 from pathlib import Path
 from typing import Union
 from omegaconf import OmegaConf
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from data import read_frame_stats, FrameStats
 
+
+logger = logging.getLogger(__name__)
 
 class Grapher:
 	def __init__(self, config: OmegaConf):
@@ -36,7 +39,7 @@ class Grapher:
 
 
 	def make_image(self, file_path: Path, gradient, data_list, lower_bound, upper_bound):
-		print(f'Creating graph image {file_path}')
+		logger.info(f'Creating graph image {file_path}')
 		values = np.asarray(data_list, dtype=np.float32)
 		colors = gradient(self.scale(values, lower_bound, upper_bound))  # (N, 3) array
 		img_data = np.repeat(colors[np.newaxis, :, :], self.image_height, axis=0)
@@ -81,7 +84,7 @@ class Grapher:
 			return None
 		bin_path = self.output_dir.joinpath(f'{name}.bin')
 		if not bin_path.exists():
-			print(f'Could not read motion data for {name}. The file {bin_path} does not exist.')
+			logger.error(f'Could not read motion data for {name}. The file {bin_path} does not exist.')
 			return None
 		return read_frame_stats(bin_path)
 

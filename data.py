@@ -2,7 +2,10 @@ import json
 import struct
 from dataclasses import dataclass, asdict
 from pathlib import Path
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class FrameStats:
@@ -43,7 +46,7 @@ class CaptureInfo:
 	@classmethod
 	def read_from_file(cls, file_path: Path):
 		if not file_path.exists():
-			print(f'Capture info not found for {file_path}')
+			logger.error(f'Capture info not found for {file_path}')
 			return None
 		return cls.from_json(file_path.read_text())
 
@@ -67,12 +70,12 @@ def read_frame_stats(file_path: Path) -> list[FrameStats]:
 	with open(file_path, 'rb') as f:
 		version, count = struct.unpack('<II', f.read(8))
 		if version != FrameStats.VERSION:
-			print(f'Unexpected version of binary file. Expected {FrameStats.VERSION}, got {version}')
+			logger.error(f'Unexpected version of binary file. Expected {FrameStats.VERSION}, got {version}')
 			return items
 		for _ in range(count):
 			fs = FrameStats.from_stream(f)
 			if fs is None:
-				print(f'Unexpected end of file when reading motion data from {file_path.absolute()}')
+				logger.error(f'Unexpected end of file when reading motion data from {file_path.absolute()}')
 				break
 			items.append(fs)
 	return items

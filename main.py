@@ -1,5 +1,6 @@
 # Taken from https://github.com/osmaa/pinymotion
 import subprocess
+import logging
 from pathlib import Path
 import shutil
 from dataclasses import dataclass
@@ -49,6 +50,7 @@ class AppConfig:
 	per_block_upper_bound: int = 100   # This is the highest we expect the motion vector per block to be. Used for graph scaling.
 	per_frame_upper_bound: int = 50000 # This is the highest we expect the sum of all vectors per frame to be. Used for graph scaling.
 	scale_boost: int = 20           # How much to boost lower values in log-scaled graphs. 5 = mild, 10 = medium, 50 = strong, 100 = very strong
+	log_level: str = 'INFO'
 	web_port: int = 8080
 
 
@@ -59,6 +61,9 @@ if not config_file.is_file():
 
 schema = OmegaConf.structured(AppConfig)
 config = OmegaConf.merge(schema, OmegaConf.load('config.yaml'))
+
+logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.getLevelName(config.log_level))
+logger = logging.getLogger(__name__)
 
 config.staging_dir.mkdir(exist_ok=True)
 config.video_dir.mkdir(exist_ok=True)
@@ -73,21 +78,21 @@ try:
 			capture = recorder.captures.get()
 			capture_info = capture[0]
 			frame_stats = capture[1]
-			print(f'Motion capture in "{capture_info.name}"')
+			logger.info(f'Motion capture in "{capture_info.name}"')
 
 			# Convert file
 			try:
 				input_file = config.staging_dir.joinpath(f'{capture_info.name}.h264')
 				output_file = config.video_dir.joinpath(f'{capture_info.name}.mp4')
 				proc = subprocess.Popen(['./convert.sh', str(input_file), str(output_file), str(config.camera.framerate)])
-				print(f'Starting conversion in sub process {proc.pid}')
+				logger.info(f'Starting conversion in sub process {proc.pid}')
 			except Exception as e:
-				print(f'Failed to convert video. {e}')
+				logger.error(f'Failed to convert video. {e}')
 
 			capture_info.write_to_file(config.data_dir)
 			write_frame_stats(config.data_dir, capture_info.name, frame_stats)
 
 			recorder.captures.task_done()
 except (KeyboardInterrupt, SystemExit):
-	print('Shutting down')
+	logger.info('Shutting down')
 	exit()
