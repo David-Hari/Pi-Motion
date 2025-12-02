@@ -16,6 +16,10 @@ from data import CaptureInfo
 
 logger = logging.getLogger(__name__)
 
+# These settings must be explicitly set when setting up the camera and cannot be changed after
+CAMERA_SETTINGS_TO_IGNORE = {'width', 'height', 'sensor_mode', 'framerate', 'bitrate'}
+
+
 class MotionRecorder(threading.Thread):
 	"""
 	Record video into a circular memory buffer and extract motion vectors for simple motion detection analysis.
@@ -69,22 +73,6 @@ class MotionRecorder(threading.Thread):
 			pass
 
 
-	def apply_camera_settings(self, settings: dict):
-		"""
-		Iterate over all the settings in the given dictionary and set the property with the same name in the camera object
-		"""
-		# These settings are explicitly set when setting up the camera
-		skip = ['width', 'height', 'sensor_mode', 'framerate', 'bitrate']
-		for key in settings:
-			if key in skip or settings[key] is None:
-				continue
-			try:
-				logger.info(f'Setting property {key} on camera')
-				setattr(self.camera, key, settings[key])
-			except AttributeError:
-				logger.warning(f'Attempted to set property {key}, but that is not a known property of PiCamera')
-
-
 	def start_camera(self):
 		"""
 		Sets up PiCamera to record H.264 High/4.1 profile video with enough intra frames that there is
@@ -100,7 +88,10 @@ class MotionRecorder(threading.Thread):
 		self.camera.start_recording(self.stream, motion_output=self.motion,
 		                            format='h264', profile='high', level='4.1', bitrate=camera_settings.bitrate,
 		                            intra_period=self.seconds_pre * camera_settings.framerate // 2)
-		self.apply_camera_settings(camera_settings)
+		try:
+			apply_camera_settings(self.camera, camera_settings)
+		except AttributeError as e:
+			logger.warning(str(e))
 
 		logger.info('Waiting for camera to warm up...')
 		self.camera.wait_recording(2)  # Give camera some time to start up
@@ -174,3 +165,20 @@ class MotionRecorder(threading.Thread):
 	def get_camera_time(self):
 		"""With clock_mode='raw' (see `start_camera`), camera's timestamp is microseconds since system boot."""
 		return timedelta(microseconds=self.camera.timestamp)
+
+
+def get_camera_settings(camera: PiCamera, settings):
+	"""
+	Return a dict containing the values of the settings in the given list
+	"""
+	return {key: getattr(camera, key) for key in settings if key not in CAMERA_SETTINGS_TO_IGNORE}
+
+
+def apply_camera_settings(camera: PiCamera, settings: dict):
+	"""
+	Iterate over all the settings in the given dictionary and set the property with the same name in the camera object
+	"""
+	for key in settings:
+		if key in CAMERA_SETTINGS_TO_IGNORE or settings[key] is None:
+			continue
+		setattr(camera, key, settings[key])

@@ -6,11 +6,15 @@ from pathlib import Path
 from collections import OrderedDict
 from itertools import groupby
 from omegaconf import OmegaConf
+from picamerax import PiCamera
+from picamerax.exc import PiCameraValueError
 import flask
-from flask import Flask, Response, url_for
+from flask import Flask, request, Response, url_for
+from werkzeug.exceptions import BadRequest, NotFound
 
 from data import CaptureInfo
 from Grapher import Grapher
+from MotionRecorder import get_camera_settings, apply_camera_settings
 
 
 logger = logging.getLogger(__name__)
@@ -65,13 +69,25 @@ def create(camera, config: OmegaConf):
 	@app.route('/live')
 	def live():
 		"""Live stream page"""
-		return flask.render_template('live.html')
+		return flask.render_template('live.html', awb_modes=PiCamera.AWB_MODES, exposure_modes=PiCamera.EXPOSURE_MODES)
 
 
 	@app.route('/live/stream')
 	def live_stream():
 		"""Live MJPEG stream"""
 		return Response(mjpeg_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+	@app.route('/controls', methods=['GET', 'POST'])
+	def camera_controls():
+		if request.method == 'POST':
+			try:
+				apply_camera_settings(camera, request.get_json() or {})
+			except (AttributeError, PiCameraValueError) as e:
+				log_and_abort(BadRequest.code, str(e))
+			return 'Ok'
+		else:
+			return get_camera_settings(camera, config.camera)
 
 
 	@app.route('/captures')
@@ -124,7 +140,7 @@ def create(camera, config: OmegaConf):
 		if path is not None and path.exists():
 			return flask.send_file(path)
 		else:
-			flask.abort(404, f'The file {path} does not exist')
+			log_and_abort(NotFound.code, f'The file {path} does not exist')
 
 
 	return app
@@ -135,6 +151,10 @@ def parse_time(t):
 
 def format_seconds(s):
 	return f'{int(s/60):0d}m:{int(s%60):02d}s'
+
+def log_and_abort(code, message):
+	logger.warning(message)
+	flask.abort(code, message)
 
 
 def run(app, host, port):

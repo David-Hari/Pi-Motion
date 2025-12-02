@@ -21,11 +21,11 @@ class CameraConfig:
 	bitrate: int = 2000000   # 2Mbps is a high quality stream for 10 fps HD video
 	sensor_mode: Optional[int] = 0
 	awb_mode: Optional[str] = None         # See PiCamera.AWB_MODES
+	exposure_mode: Optional[str] = None    # See PiCamera.EXPOSURE_MODES
+	exposure_compensation: Optional[int] = None # -25 to 25
 	brightness: Optional[int] = None       # 0 to 100
 	contrast: Optional[int] = None         # -100 to 100
 	saturation: Optional[int] = None       # -100 to 100
-	exposure_mode: Optional[str] = None    # See PiCamera.EXPOSURE_MODES
-	exposure_compensation: Optional[int] = None # -25 to 25
 	iso: Optional[int] = None
 	sharpness: Optional[int] = None        # -100 and 100
 	hflip: Optional[bool] = None

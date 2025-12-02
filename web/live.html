@@ -4,6 +4,7 @@
 	<meta charset="utf-8">
 	<title>Motion Detection - Live</title>
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}" />
+	<script src="{{ url_for('static', filename='camera-controls.js') }}" defer></script>
 </head>
 <body>
 <div class="tab-container">
@@ -12,6 +13,117 @@
 </div>
 <div class="content-container live">
 	<img class="live-stream" src="{{ url_for('live_stream') }}" alt="live preview">
+	<div class="camera-controls">
+		<div id="awb-mode-item" class="control-item">
+			<label for="awb_mode">Auto white balance</label>
+			<select id="awb_mode">
+				{% for m in awb_modes %}
+				<option value="{{m}}">{{m}}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div id="exposure-mode-item" class="control-item">
+			<label for="exposure_mode">Exposure mode</label>
+			<select id="exposure_mode">
+				{% for m in exposure_modes %}
+				<option value="{{m}}">{{m}}</option>
+				{% endfor %}
+			</select>
+		</div>
+		<div id="exposure-compensation-item" class="control-item">
+			<label for="exposure_compensation">Exposure compensation</label>
+			<div class="slider-wrap">
+				<input type="range" id="exposure_compensation" min="-25" max="25">
+				<div class="slider-ticks">
+					<span>-25</span>
+					<span>0</span>
+					<span>25</span>
+				</div>
+			</div>
+		</div>
+		<div id="iso-item" class="control-item">
+			<label for="iso">ISO</label>
+			<div class="slider-wrap">
+				<input type="range" id="iso" min="0" max="800" step="100">
+				<div class="slider-ticks">
+					<span>auto</span>
+					<span>200</span>
+					<span>400</span>
+					<span>600</span>
+					<span>800</span>
+				</div>
+			</div>
+		</div>
+		<div id="brightness-item" class="control-item">
+			<label for="brightness">Brightness</label>
+			<div class="slider-wrap">
+				<input type="range" id="brightness" min="0" max="100">
+				<div class="slider-ticks">
+					<span>0</span>
+					<span>50</span>
+					<span>100</span>
+				</div>
+			</div>
+		</div>
+		<div id="contrast-item" class="control-item">
+			<label for="contrast">Contrast</label>
+			<div class="slider-wrap">
+				<input type="range" id="contrast" min="-100" max="100">
+				<div class="slider-ticks">
+					<span>-100</span>
+					<span>0</span>
+					<span>100</span>
+				</div>
+			</div>
+		</div>
+		<div id="saturation-item" class="control-item">
+			<label for="saturation">Saturation</label>
+			<div class="slider-wrap">
+				<input type="range" id="saturation" min="-100" max="100">
+				<div class="slider-ticks">
+					<span>-100</span>
+					<span>0</span>
+					<span>100</span>
+				</div>
+			</div>
+		</div>
+		<div id="sharpness-item" class="control-item">
+			<label for="sharpness">Sharpness</label>
+			<div class="slider-wrap">
+				<input type="range" id="sharpness" min="-100" max="100">
+				<div class="slider-ticks">
+					<span>-100</span>
+					<span>0</span>
+					<span>100</span>
+				</div>
+			</div>
+		</div>
+		<div id="rotation-item" class="control-item">
+			<label for="rotation">Rotation</label>
+			<select id="rotation">
+				<option value="0">0&deg;</option>
+				<option value="90">90&deg;</option>
+				<option value="180">180&deg;</option>
+				<option value="270">270&deg;</option>
+			</select>
+		</div>
+		<div id="hflip-item" class="control-item">
+			<input type="checkbox" id="hflip">
+			<label for="hflip">Horizontal flip</label>
+		</div>
+		<div id="vflip-item" class="control-item">
+			<input type="checkbox" id="vflip">
+			<label for="vflip">Vertical flip</label>
+		</div>
+		<div id="video-denoise-item" class="control-item">
+			<input type="checkbox" id="video_denoise">
+			<label for="video_denoise">De-noise</label>
+		</div>
+		<div id="annotate-text-size-item" class="control-item">
+			<label for="annotate_text_size">Annotate text size</label>
+			<input type="number" id="annotate_text_size" min="6" max="160">
+		</div>
+	</div>
 </div>
 </body>
 </html>
