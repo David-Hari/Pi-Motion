@@ -1,10 +1,5 @@
 
 :root {
-	--text-colour: hsl(0deg 0% 93%);
-	--icon-filter: brightness(93%);   /* For svg, as it does not take foreground colour. Assumes svg is white */
-	--primary-colour-hue: 271deg;
-	--primary-colour: hsl(var(--primary-colour-hue) 50% 40%);
-	--primary-colour-highlight: hsl(var(--primary-colour-hue) 60% 60%);
 	--main-border-radius: 8px;
 }
 
@@ -12,19 +7,13 @@ body {
 	font-family: sans-serif;
 	max-width: 1328px;
 	margin: 20px auto;
-	color: var(--text-colour);
-	background: hsl(0deg 0% 7%);
 }
 
 a {
-	color: hsl(44deg, 10%, 85%);
 	text-decoration: none;
 }
 a:hover {
 	text-decoration: underline;
-}
-a:visited {
-	color: hsl(44deg, 20%, 50%);
 }
 
 
@@ -39,16 +28,8 @@ a:visited {
 	border-top-left-radius: var(--main-border-radius);
 	border-top-right-radius: var(--main-border-radius);
 	text-align: center;
-	color: hsl(44deg 100% 94%);
 }
 
-.tab {
-	background: hsl(0deg 0% 9%);
-}
-
-.tab:hover:not(.active) {
-	background-color: var(--primary-colour);
-}
 
 /* Override other rules for <a> */
 a.tab:hover {
@@ -56,10 +37,6 @@ a.tab:hover {
 }
 a.tab:visited {
 	color: inherit;
-}
-
-.tab.active {
-	background: hsl(0deg 0% 13%);
 }
 
 
@@ -72,7 +49,6 @@ a.tab:visited {
 	padding: 14px;
 	border-radius: var(--main-border-radius);
 	border-top-left-radius: 0px;
-	background: hsl(0deg 0% 13%);
 }
 
 
@@ -89,18 +65,18 @@ a.tab:visited {
 
 .live .camera-controls {
 	display: grid;
-	gap: 8px 16px;
+	gap: 6px 16px;
 }
 
 .live select,
 .live input {
-	height: 24px;
+	height: 26px;
 	box-sizing: border-box;
 }
 
 .live .control-item {
 	display: flex;
-	gap: 0.4rem;
+	gap: 0.5rem;
 	align-items: center;
 }
 
@@ -121,6 +97,10 @@ a.tab:visited {
 
 .slider-ticks {
 	display: flex;
+	/* TODO:
+	 This makes even spacing between numbers, but since each number can have a different width it means
+	 they aren't precisely aligned. e.g. with "0  50  100" and "-100  0  100" the 50 is not lined up with the 0.
+	 Need to figure out how to center each number. */
 	justify-content: space-between;
 	font-size: 0.7rem;
 	margin-top: -4px;
@@ -140,7 +120,7 @@ a.tab:visited {
 #hflip-item                 { grid-row: 2; grid-column: 3; }
 #vflip-item                 { grid-row: 3; grid-column: 3; }
 #video-denoise-item         { grid-row: 4; grid-column: 3; }
-#annotate-text-size-item    { grid-row: 5; grid-column: 1; }
+#annotate-text-size-item    { grid-row: 5; grid-column: 3; }
 
 #awb-mode-item label,
 #exposure-mode-item label,
@@ -175,9 +155,7 @@ a.tab:visited {
 }
 
 .captures table td {
-	border-width: 1px;
-	border-color: transparent;
-	border-style: solid;
+	border: 1px solid transparent;
 }
 
 .captures table tr.day-header td {
@@ -188,7 +166,7 @@ a.tab:visited {
 	content: "";
     display: block;
     width: 100%;
-    border-bottom: 1px solid hsl(0deg 0% 40%);
+    border-bottom: 1px solid;
 }
 
 .captures table tr.item td:first-child {
@@ -200,24 +178,6 @@ a.tab:visited {
 	border-bottom-right-radius: var(--main-border-radius);
 }
 
-.captures table tr.item:not(:hover):nth-child(even) {
-	background: hsl(0deg 0% 15%);
-}
-
-.captures table tr.item:hover {
-	background: linear-gradient(0deg, hsl(var(--primary-colour-hue) 50% 30%), hsl(var(--primary-colour-hue) 50% 50%));
-}
-.captures table tr.item:hover td {
-	border-top-color: var(--primary-colour-highlight);
-	border-bottom-color: hsl(var(--primary-colour-hue) 60% 50%);
-}
-.captures table tr.item:hover td:first-child {
-	border-left-color: var(--primary-colour-highlight);
-}
-.captures table tr.item:hover td:last-child {
-	border-right-color: var(--primary-colour-highlight);
-}
-
 .captures td.download {
 	text-align: right;
 }
@@ -225,7 +185,6 @@ a.tab:visited {
 .captures td.download img {
 	width: 20px;
 	height: 20px;
-	filter: var(--icon-filter);
 }
 
 .captures td > .motion-graph {
@@ -279,15 +238,10 @@ a.tab:visited {
 	width: 30px;
 	height: 30px;
 	padding: 4px;
-	background: transparent;
+	border: 1px solid;
 	border-radius: 6px;
-	border: 1px solid hsl(0deg 0% 20%);
 	cursor: pointer;
 	user-select: none;
-}
-
-.video-player .controls button img {
-	filter: var(--icon-filter);
 }
 
 .video-player .controls .prev-frame-button,
@@ -297,15 +251,6 @@ a.tab:visited {
 
 .video-player .controls .prev-frame-button img {
 	transform: scaleX(-1);
-}
-
-.video-player .controls button:hover {
-	border-color: var(--primary-colour-highlight);
-	background: var(--primary-colour);
-}
-
-.video-player .controls button:active {
-	background: hsl(var(--primary-colour-hue) 60% 40%);
 }
 
 .video-player .time-text {
@@ -339,16 +284,6 @@ a.tab:visited {
 .progress-bar {
 	position: relative;
 	cursor: pointer;
-	border-color: hsl(0deg 0% 25%);
-}
-
-.progress-bar .buffer-range {
-	opacity: 0.7;
-	border-color: hsl(0deg 0% 35%);
-}
-
-.progress-bar .played-bar {
-	border-color: var(--primary-colour);
 }
 
 .progress-bar .thumb {
@@ -359,11 +294,6 @@ a.tab:visited {
 	height: 12px;
 	pointer-events: auto;
 	background: hsl(0deg 0% 90%);
-	border: 3px solid hsl(var(--primary-colour-hue) 50% 50%);
+	border: 3px solid;
 	border-radius: 50%;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-.progress-bar .thumb:hover {
-	border-color: hsl(var(--primary-colour-hue) 50% 60%);
 }

@@ -1,0 +1,140 @@
+
+:root {
+	--text-colour: hsl(0deg 0% 93%);
+	--icon-filter: brightness(93%);   /* For svg, as it does not take foreground colour. Assumes svg is white */
+	--primary-colour-hue: 271deg;
+	--primary-colour: hsl(var(--primary-colour-hue) 50% 40%);
+	--primary-colour-highlight: hsl(var(--primary-colour-hue) 60% 60%);
+}
+
+body {
+	color: var(--text-colour);
+	background: hsl(0deg 0% 7%);
+}
+
+a {
+	color: hsl(44deg, 10%, 85%);
+}
+
+a:visited {
+	color: hsl(44deg, 20%, 50%);
+}
+
+.content-container {
+	background: hsl(0deg 0% 13%);
+}
+
+
+/********************************/
+/*  Tabs                        */
+/********************************/
+
+.tab {
+	color: hsl(44deg 100% 94%);
+	background: hsl(0deg 0% 9%);
+}
+
+.tab:hover:not(.active) {
+	background-color: var(--primary-colour);
+}
+
+.tab.active {
+	background: hsl(0deg 0% 13%);
+}
+
+
+/********************************/
+/*  Captures page               */
+/********************************/
+
+.captures table tr.day-header td::after {
+	content: "";
+    display: block;
+    width: 100%;
+    border-bottom-color: hsl(0deg 0% 40%);
+}
+
+.captures table tr.item:not(:hover):nth-child(even) {
+	background: hsl(0deg 0% 15%);
+}
+
+.captures table tr.item:hover {
+	background: linear-gradient(0deg, hsl(var(--primary-colour-hue) 50% 30%), hsl(var(--primary-colour-hue) 50% 50%));
+}
+.captures table tr.item:hover td {
+	border-top-color: var(--primary-colour-highlight);
+	border-bottom-color: hsl(var(--primary-colour-hue) 60% 50%);
+}
+.captures table tr.item:hover td:first-child {
+	border-left-color: var(--primary-colour-highlight);
+}
+.captures table tr.item:hover td:last-child {
+	border-right-color: var(--primary-colour-highlight);
+}
+
+.captures td.download img {
+	filter: var(--icon-filter);
+}
+
+
+/********************************/
+/*  Video controls              */
+/********************************/
+
+.video-player .controls button {
+	background: transparent;
+	border-color: hsl(0deg 0% 20%);
+}
+
+.video-player .controls button img {
+	filter: var(--icon-filter);
+}
+
+.video-player .controls button:hover {
+	border-color: var(--primary-colour-highlight);
+	background: var(--primary-colour);
+}
+
+.video-player .controls button:active {
+	background: hsl(var(--primary-colour-hue) 60% 40%);
+}
+
+.progress-bar {
+	border-color: hsl(0deg 0% 25%);
+}
+
+.progress-bar .buffer-range {
+	opacity: 0.7;
+	border-color: hsl(0deg 0% 35%);
+}
+
+.progress-bar .played-bar {
+	border-color: var(--primary-colour);
+}
+
+.progress-bar .thumb {
+	background: hsl(0deg 0% 90%);
+	border-color: hsl(var(--primary-colour-hue) 50% 50%);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.progress-bar .thumb:hover {
+	border-color: hsl(var(--primary-colour-hue) 50% 60%);
+}
+
+
+/********************************/
+/*  UI elements                 */
+/********************************/
+
+input {
+	accent-color: var(--primary-colour);
+}
+
+select,
+input[type="text"],
+input[type="number"] {
+	background: hsl(0deg 0% 18%);
+	color: var(--text-colour);
+	border: 1px solid hsl(0deg 0% 26%);
+}
