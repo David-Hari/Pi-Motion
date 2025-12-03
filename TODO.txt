@@ -3,6 +3,3 @@
 * Graphs seem to show motion about 5 seconds after it happens, mainly near the start of the video.
   Length of video is also sometimes a bit shorter than it says.
   This may be because circular buffer hasn't completely filled and therefore start_time is wrong.
-
-
-* Put UI controls on live view, have '/controls' (def adjust_camera_controls) endpoint to adjust in real time
