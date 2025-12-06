@@ -1,7 +1,7 @@
 import io
 import threading
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from collections import OrderedDict
 from itertools import groupby
@@ -138,7 +138,7 @@ def create(camera, config: OmegaConf):
 
 	def send_graph_image(path: Path):
 		if path is not None and path.exists():
-			return flask.send_file(path)
+			return flask.send_file(path, cache_timeout=timedelta(days=365).total_seconds())
 		else:
 			log_and_abort(NotFound.code, f'The file {path} does not exist')
 
